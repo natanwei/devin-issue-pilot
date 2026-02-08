@@ -680,6 +680,8 @@ export default function Dashboard({
         mode={state.mode}
         issues={state.issues}
         onDisconnect={onDisconnect}
+        onRefresh={fetchIssues}
+        loading={state.loading}
         onToggleMode={() => {
           if (state.mode === "demo") {
             dispatch({ type: "TOGGLE_ACU_MODAL" });

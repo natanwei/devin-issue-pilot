@@ -1,6 +1,6 @@
 "use client";
 
-import { Bot, X } from "lucide-react";
+import { Bot, X, RefreshCw } from "lucide-react";
 import { DashboardIssue } from "@/lib/types";
 
 interface TopBarProps {
@@ -9,6 +9,8 @@ interface TopBarProps {
   issues: DashboardIssue[];
   onDisconnect: () => void;
   onToggleMode: () => void;
+  onRefresh: () => void;
+  loading: boolean;
 }
 
 export default function TopBar({
@@ -17,6 +19,8 @@ export default function TopBar({
   issues,
   onDisconnect,
   onToggleMode,
+  onRefresh,
+  loading,
 }: TopBarProps) {
   const totalIssues = issues.length;
   const scopedCount = issues.filter(
@@ -73,6 +77,14 @@ export default function TopBar({
           <span className="text-accent-amber">{yellowCount}</span>
           <span className="text-accent-red">{redCount}</span>
         </div>
+        <span className="text-[#444444]">·</span>
+        <button
+          onClick={onRefresh}
+          className="text-text-muted hover:text-text-secondary transition-colors"
+          title="Refresh issues"
+        >
+          <RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} />
+        </button>
         <span className="text-[#444444]">·</span>
         <button
           onClick={onToggleMode}
