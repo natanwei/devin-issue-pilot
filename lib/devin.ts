@@ -22,6 +22,7 @@ interface SessionStatusResponse {
     url: string;
   };
   structured_output?: Record<string, unknown>;
+  messages?: Array<{ type?: string; message?: string; content?: string }>;
 }
 
 export async function createScopingSession(params: {
@@ -48,6 +49,8 @@ Please analyze this issue and determine:
 6. What are the risks?
 7. What open questions do you have?
 
+You MUST populate the structured_output field with your analysis. Update the structured output immediately with your findings. Do not put the JSON in your message — it must go in the structured_output field.
+
 Respond with structured JSON:
 {
   "confidence": "green" | "yellow" | "red",
@@ -59,7 +62,9 @@ Respond with structured JSON:
   "action_plan": ["step 1", "step 2", ...],
   "risks": ["..."],
   "open_questions": ["..."]
-}`;
+}
+
+IMPORTANT: Update your structured output with this exact JSON schema. The structured_output field is how the dashboard reads your analysis. If you put it in a message instead, the dashboard cannot parse it.`;
 
   const res = await fetch(`${DEVIN_API_BASE}/sessions`, {
     method: "POST",

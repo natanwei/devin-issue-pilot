@@ -115,32 +115,33 @@ export function getDemoIssues(): DashboardIssue[] {
       scoping: {
         confidence: "yellow",
         confidence_reason:
-          "Devin has questions about input validation requirements",
+          "Devin has questions about migration constraints and data validation requirements",
         current_behavior:
-          "The health endpoint returns 500 when the database connection is unavailable, causing false positive alerts.",
+          "Application uses SQLite via better-sqlite3 for all data storage. SQLite lacks concurrent write support and has a 2GB practical size limit, causing lock contention under load.",
         requested_fix:
-          "Return 200 with degraded status when database is unavailable. Include status details in response body.",
+          "Migrate to PostgreSQL with connection pooling via pg-pool. Create migration scripts for all existing tables and seed data.",
         files_to_modify: [
-          "src/routes/health.ts",
+          "src/config/database.ts",
+          "db/migrations/001_create_tables.sql",
+          "db/migrations/002_seed_data.sql",
           "src/services/database.ts",
-          "tests/health.test.ts",
         ],
         tests_needed: "Migration tests and rollback verification",
         action_plan: [
-          "Update error handler in health.ts",
-          "Add try-catch for DB connection",
-          "Add test for unreachable DB scenario",
+          "Create PostgreSQL migration scripts for all tables",
+          "Update database.ts to use pg-pool instead of better-sqlite3",
+          "Add rollback scripts for each migration step",
         ],
         risks: ["Data loss if migration script fails mid-way"],
         open_questions: [
-          "What validation rules should apply to the email field \u2014 format check only, or also domain verification?",
-          "Should invalid requests return 400 with field-level errors, or a generic validation error?",
+          "Should the migration preserve SQLite as a fallback for local development, or fully replace it?",
+          "What are the schema constraints for foreign keys — should they use CASCADE or RESTRICT on delete?",
         ],
       },
       files_info: [
-        { path: "src/routes/health.ts", lines: 45 },
+        { path: "src/config/database.ts", lines: 45 },
+        { path: "db/migrations/001_create_tables.sql", lines: null },
         { path: "src/services/database.ts", lines: 120 },
-        { path: "tests/health.test.ts", lines: 85 },
       ],
       fix_progress: null,
       blocker: null,
@@ -307,27 +308,28 @@ export function getDemoIssues(): DashboardIssue[] {
         confidence: "green",
         confidence_reason: "Clear bug with straightforward fix",
         current_behavior:
-          "CORS headers missing on API responses, blocking frontend requests.",
+          "API responses lack Access-Control-Allow-Origin and related CORS headers. Browsers block all cross-origin requests from the frontend (localhost:5173) to the API (localhost:3000), causing fetch failures.",
         requested_fix:
-          "Add proper CORS middleware with configurable allowed origins.",
+          "Add CORS middleware that sets Access-Control-Allow-Origin, Allow-Methods, and Allow-Headers. Support configurable allowed origins from environment variable.",
         files_to_modify: [
           "src/middleware/cors.ts",
+          "src/config.ts",
           "src/index.ts",
           "tests/cors.test.ts",
         ],
-        tests_needed: "CORS header verification tests",
+        tests_needed: "CORS header verification tests for allowed and blocked origins",
         action_plan: [
-          "Update error handler in health.ts",
-          "Add try-catch for DB connection",
-          "Add test for unreachable DB scenario",
+          "Create CORS middleware with configurable origin allowlist",
+          "Add ALLOWED_ORIGINS to config.ts with env var support",
+          "Wire CORS middleware into Express app before routes",
         ],
         risks: [],
         open_questions: [],
       },
       files_info: [
         { path: "src/middleware/cors.ts", lines: 25 },
+        { path: "src/config.ts", lines: 35 },
         { path: "src/index.ts", lines: 89 },
-        { path: "tests/cors.test.ts", lines: null },
       ],
       fix_progress: {
         status: "in_progress",
@@ -364,7 +366,7 @@ export function getDemoIssues(): DashboardIssue[] {
       completed_at: null,
     },
 
-    // Issue #8 — done / pr_open
+    // Issue #8 — pr_open
     {
       number: 8,
       title: "Fix memory leak in WebSocket handler",
@@ -373,33 +375,33 @@ export function getDemoIssues(): DashboardIssue[] {
       created_at: "2026-02-02T09:00:00Z",
       updated_at: "2026-02-06T16:00:00Z",
       github_url: "https://github.com/natan/devin-issue-pilot-demo/issues/8",
-      status: "done",
+      status: "pr_open",
       confidence: "green",
       scoping: {
         confidence: "green",
-        confidence_reason: "Clear memory leak with identifiable source",
+        confidence_reason: "Clear memory leak with identifiable source in WebSocket handler",
         current_behavior:
-          "WebSocket handler doesn't clean up event listeners on disconnect, causing memory growth.",
+          "WebSocket connections are not being cleaned up on disconnect. Event listeners accumulate on the server, and the connection pool grows unbounded. Memory usage increases ~50MB/hour under normal traffic.",
         requested_fix:
-          "Add proper cleanup in disconnect handler and implement connection pool limits.",
+          "Add proper cleanup in the disconnect handler: remove all event listeners, release pool slot, and implement a max connection limit with graceful rejection.",
         files_to_modify: [
-          "src/routes/health.ts",
-          "src/services/database.ts",
-          "tests/health.test.ts",
+          "src/ws/handler.ts",
+          "src/ws/pool.ts",
+          "tests/ws.test.ts",
         ],
-        tests_needed: "Memory leak regression test",
+        tests_needed: "Memory leak regression test, connection pool limit test",
         action_plan: [
-          "Update error handler in health.ts",
-          "Add try-catch for DB connection",
-          "Add test for unreachable DB scenario",
+          "Add removeAllListeners() call in disconnect handler",
+          "Implement connection pool with max limit and cleanup",
+          "Add regression test verifying listeners are freed on disconnect",
         ],
         risks: [],
         open_questions: [],
       },
       files_info: [
-        { path: "src/routes/health.ts", lines: 45 },
-        { path: "src/services/database.ts", lines: 120 },
-        { path: "tests/health.test.ts", lines: 85 },
+        { path: "src/ws/handler.ts", lines: 95 },
+        { path: "src/ws/pool.ts", lines: 60 },
+        { path: "tests/ws.test.ts", lines: 85 },
       ],
       fix_progress: {
         status: "completed",
@@ -519,19 +521,20 @@ export function getDemoIssues(): DashboardIssue[] {
         confidence: "green",
         confidence_reason: "Well-defined OAuth2 flow with clear implementation path",
         current_behavior:
-          "No authentication exists. All endpoints are publicly accessible.",
+          "No authentication exists. All API endpoints are publicly accessible. Users cannot log in or have their identity verified.",
         requested_fix:
-          "Add GitHub OAuth2 login with session management and protected routes.",
+          "Add GitHub OAuth2 login flow: redirect to GitHub, exchange code for token, store session in cookie, protect routes with auth middleware.",
         files_to_modify: [
           "src/routes/auth.ts",
           "src/middleware/auth.ts",
           "src/config.ts",
+          "src/routes/login.ts",
         ],
-        tests_needed: "OAuth flow integration tests",
+        tests_needed: "OAuth flow integration tests, session cookie validation tests",
         action_plan: [
-          "Update error handler in health.ts",
-          "Add try-catch for DB connection",
-          "Add test for unreachable DB scenario",
+          "Create /auth/github route for OAuth redirect and callback",
+          "Add session middleware with signed cookies and token storage",
+          "Create auth guard middleware for protected routes",
         ],
         risks: [],
         open_questions: [],
@@ -539,6 +542,7 @@ export function getDemoIssues(): DashboardIssue[] {
       files_info: [
         { path: "src/routes/auth.ts", lines: null },
         { path: "src/middleware/auth.ts", lines: null },
+        { path: "src/routes/login.ts", lines: null },
         { path: "src/config.ts", lines: 35 },
       ],
       fix_progress: {
@@ -694,6 +698,160 @@ export function getDemoIssues(): DashboardIssue[] {
       scoped_at: "2026-02-04T09:00:00Z",
       fix_started_at: "2026-02-05T14:00:00Z",
       completed_at: null,
+    },
+
+    // Issue #15 — failed
+    {
+      number: 15,
+      title: "Fix rate limiter middleware",
+      body: "The rate limiter is using a fixed-window algorithm that allows burst traffic at window boundaries. Need to switch to a token bucket approach.",
+      labels: [{ name: "bug", color: "d73a4a" }],
+      created_at: "2026-02-01T11:00:00Z",
+      updated_at: "2026-02-07T10:30:00Z",
+      github_url: "https://github.com/natan/devin-issue-pilot-demo/issues/15",
+      status: "failed",
+      confidence: "green",
+      scoping: {
+        confidence: "green",
+        confidence_reason:
+          "Clear bug with well-defined fix — swap fixed-window for token bucket algorithm",
+        current_behavior:
+          "Rate limiter uses fixed-window counting, allowing 2x burst traffic at window boundaries. Clients can send 200 req/min instead of the intended 100 by timing requests across the reset boundary.",
+        requested_fix:
+          "Replace fixed-window counter with token bucket algorithm. Tokens refill at a steady rate, preventing boundary bursts while maintaining the same average limit.",
+        files_to_modify: [
+          "src/middleware/rateLimit.ts",
+          "src/lib/tokenBucket.ts",
+          "tests/rateLimit.test.ts",
+        ],
+        tests_needed: "Token bucket refill tests, burst prevention tests",
+        action_plan: [
+          "Analyze current rate limiter code and identify fixed-window logic",
+          "Implement token bucket class in tokenBucket.ts",
+          "Apply fix to middleware/rateLimit.ts to use token bucket",
+        ],
+        risks: [
+          "Timing-sensitive tests may break due to token refill intervals",
+        ],
+        open_questions: [],
+      },
+      files_info: [
+        { path: "src/middleware/rateLimit.ts", lines: 67 },
+        { path: "src/lib/tokenBucket.ts", lines: null },
+        { path: "tests/rateLimit.test.ts", lines: 142 },
+      ],
+      fix_progress: {
+        status: "blocked",
+        current_step: "Apply fix to middleware/rateLimit.ts to use token bucket",
+        completed_steps: [
+          "Analyze current rate limiter code and identify fixed-window logic",
+          "Implement token bucket class in tokenBucket.ts",
+        ],
+        pr_url: null,
+        blockers: [
+          "Test suite failed: 3 assertions broken after change. The token bucket algorithm change caused timing-sensitive tests to fail intermittently.",
+        ],
+      },
+      blocker: null,
+      pr: null,
+      steps: [
+        {
+          label: "Analyzed rate limiter code",
+          status: "done",
+        },
+        {
+          label: "Identified token bucket implementation",
+          status: "done",
+        },
+        {
+          label: "Apply fix to middleware/rateLimit.ts",
+          status: "failed",
+        },
+      ],
+      scoping_session: {
+        session_id: "demo-scope-15",
+        session_url: "https://app.devin.ai/sessions/demo-scope-15",
+        started_at: "2026-02-06T09:00:00Z",
+      },
+      fix_session: {
+        session_id: "demo-fix-15",
+        session_url: "https://app.devin.ai/sessions/demo-fix-15",
+        started_at: "2026-02-07T09:30:00Z",
+        updated_at: "2026-02-07T10:15:00Z",
+      },
+      scoped_at: "2026-02-06T09:12:00Z",
+      fix_started_at: "2026-02-07T09:30:00Z",
+      completed_at: null,
+    },
+
+    // Issue #16 — done (completed, PR already merged)
+    {
+      number: 16,
+      title: "Fix broken CI pipeline",
+      body: "The CI pipeline fails on the lint step because of outdated ESLint config after the TypeScript 5 upgrade.",
+      labels: [{ name: "bug", color: "d73a4a" }, { name: "ci", color: "0075ca" }],
+      created_at: "2026-02-01T10:00:00Z",
+      updated_at: "2026-02-05T12:00:00Z",
+      github_url: "https://github.com/natan/devin-issue-pilot-demo/issues/16",
+      status: "done",
+      confidence: "green",
+      scoping: {
+        confidence: "green",
+        confidence_reason:
+          "Clear CI failure with straightforward config fix",
+        current_behavior:
+          "CI pipeline fails on lint step with 12 ESLint errors. All errors are related to deprecated rules from the TypeScript 5 migration.",
+        requested_fix:
+          "Update .eslintrc.json to use @typescript-eslint/recommended v6 rules. Remove deprecated rules and add new equivalents.",
+        files_to_modify: [
+          ".eslintrc.json",
+          "tsconfig.json",
+        ],
+        tests_needed: "Verify CI pipeline passes with updated config",
+        action_plan: [
+          "Update ESLint config to v6 recommended rules",
+          "Remove deprecated rule overrides",
+          "Verify lint passes locally before push",
+        ],
+        risks: [],
+        open_questions: [],
+      },
+      files_info: [
+        { path: ".eslintrc.json", lines: 42 },
+        { path: "tsconfig.json", lines: 28 },
+      ],
+      fix_progress: {
+        status: "completed",
+        current_step: "Verify lint passes locally before push",
+        completed_steps: [
+          "Update ESLint config to v6 recommended rules",
+          "Remove deprecated rule overrides",
+          "Verify lint passes locally before push",
+        ],
+        pr_url: null,
+        blockers: [],
+      },
+      blocker: null,
+      pr: null,
+      steps: [
+        { label: "Update ESLint config to v6 recommended rules", status: "done" },
+        { label: "Remove deprecated rule overrides", status: "done" },
+        { label: "Verify lint passes locally before push", status: "done" },
+      ],
+      scoping_session: {
+        session_id: "demo-scope-16",
+        session_url: "https://app.devin.ai/sessions/demo-scope-16",
+        started_at: "2026-02-04T10:00:00Z",
+      },
+      fix_session: {
+        session_id: "demo-fix-16",
+        session_url: "https://app.devin.ai/sessions/demo-fix-16",
+        started_at: "2026-02-05T10:00:00Z",
+        updated_at: "2026-02-05T10:08:30Z",
+      },
+      scoped_at: "2026-02-04T10:08:00Z",
+      fix_started_at: "2026-02-05T10:00:00Z",
+      completed_at: "2026-02-05T12:00:00Z",
     },
   ];
 }

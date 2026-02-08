@@ -66,7 +66,7 @@ export default function DiffSnippet({ files }: DiffSnippetProps) {
       </div>
 
       {/* Diff lines */}
-      <div className="max-h-[105px] overflow-y-auto diff-scrollbar">
+      <div className="max-h-[240px] overflow-y-auto diff-scrollbar">
         {activeFile.diff_lines?.map((line, i) => {
           let bg = "bg-[#0d1117]";
           let color = "text-[#8b949e]";

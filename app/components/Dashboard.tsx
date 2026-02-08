@@ -1,6 +1,6 @@
 "use client";
 
-import { useReducer, useMemo, useCallback, useEffect, useRef } from "react";
+import { useReducer, useMemo, useCallback, useEffect, useRef, useState } from "react";
 import {
   DashboardState,
   DashboardAction,
@@ -13,6 +13,7 @@ import {
   TIMEOUT_LIMITS,
   ACU_LIMITS,
 } from "@/lib/constants";
+import { interpretPollResult } from "@/lib/parsers";
 import { getDemoIssues } from "@/lib/demo-data";
 import TopBar from "./TopBar";
 import FilterBar from "./FilterBar";
@@ -194,6 +195,22 @@ export default function Dashboard({
     [state.issues, state.filter, state.sortBy]
   );
 
+  // --- Demo mode toast ---
+  const [demoToast, setDemoToast] = useState<string | null>(null);
+  const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const showDemoToast = useCallback(() => {
+    setDemoToast("Switch to Live mode to use this action");
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    toastTimerRef.current = setTimeout(() => setDemoToast(null), 2000);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    };
+  }, []);
+
   // --- Fetch issues from GitHub (live mode) ---
   const fetchIssues = useCallback(async () => {
     if (stateRef.current.mode !== "live" || !stateRef.current.repo) return;
@@ -344,147 +361,65 @@ export default function Dashboard({
       const issue = current.issues.find((i) => i.number === issueNumber);
       if (!issue) return;
 
-      // Check timeouts
+      // Determine session timing context
       const sessionStart = type === "scoping"
         ? issue.scoping_session?.started_at
         : issue.fix_session?.started_at;
-      if (sessionStart) {
-        const elapsed = Date.now() - new Date(sessionStart).getTime();
-        const limit = type === "scoping" ? TIMEOUT_LIMITS.scoping : TIMEOUT_LIMITS.fixing;
-        if (elapsed > limit) {
-          dispatch({
-            type: "UPDATE_ISSUE",
-            issueNumber,
-            patch: { status: "timed_out" },
-          });
+      const timeoutLimit = type === "scoping"
+        ? TIMEOUT_LIMITS.scoping
+        : TIMEOUT_LIMITS.fixing;
+
+      const result = interpretPollResult(data, type, {
+        issueNumber,
+        sessionStartedAt: sessionStart,
+        timeoutLimit,
+      });
+
+      switch (result.action) {
+        case "timed_out":
+        case "scoped":
+        case "failed":
+          dispatch({ type: "UPDATE_ISSUE", issueNumber, patch: result.patch });
           dispatch({ type: "CLEAR_SESSION" });
-          return;
-        }
-      }
+          break;
 
-      if (data.isTerminal) {
-        if (type === "scoping") {
-          const output = data.structuredOutput;
-          if (output) {
-            dispatch({
-              type: "UPDATE_ISSUE",
-              issueNumber,
-              patch: {
-                status: "scoped",
-                confidence: output.confidence || "yellow",
-                scoping: output,
-                scoped_at: new Date().toISOString(),
-              },
-            });
-          } else {
-            dispatch({
-              type: "UPDATE_ISSUE",
-              issueNumber,
-              patch: { status: "scoped", scoped_at: new Date().toISOString() },
-            });
-          }
-        } else {
-          // Fix session finished
-          if (data.pullRequest?.url) {
-            const prMatch = data.pullRequest.url.match(/\/pull\/(\d+)/);
-            const prNumber = prMatch ? parseInt(prMatch[1]) : null;
-
-            // Enrich PR data from GitHub API
-            let prInfo = prNumber
-              ? {
-                  url: data.pullRequest.url,
-                  number: prNumber,
-                  title: `Fix for #${issueNumber}`,
-                  branch: `devin/fix-${issueNumber}`,
-                  files_changed: [] as import("@/lib/types").PRFileChange[],
-                }
-              : null;
-
-            if (prNumber && current.repo) {
-              try {
-                const prRes = await fetch(
-                  `/api/github/pr-details?owner=${encodeURIComponent(current.repo.owner)}&repo=${encodeURIComponent(current.repo.name)}&pr=${prNumber}`
-                );
-                if (prRes.ok) {
-                  const prData = await prRes.json();
-                  prInfo = {
-                    url: prData.url || data.pullRequest.url,
-                    number: prNumber,
-                    title: prData.title || `Fix for #${issueNumber}`,
-                    branch: prData.branch || `devin/fix-${issueNumber}`,
+        case "done": {
+          // Enrich PR data from GitHub API if available
+          let finalPatch = result.patch;
+          if (result.patch.pr && current.repo) {
+            try {
+              const prRes = await fetch(
+                `/api/github/pr-details?owner=${encodeURIComponent(current.repo.owner)}&repo=${encodeURIComponent(current.repo.name)}&pr=${result.patch.pr.number}`
+              );
+              if (prRes.ok) {
+                const prData = await prRes.json();
+                finalPatch = {
+                  ...finalPatch,
+                  pr: {
+                    ...result.patch.pr,
+                    title: prData.title || result.patch.pr.title,
+                    branch: prData.branch || result.patch.pr.branch,
                     files_changed: prData.files || [],
-                  };
-                }
-              } catch {
-                // PR enrichment failure is non-critical, keep placeholder
+                  },
+                };
               }
+            } catch {
+              // PR enrichment failure is non-critical
             }
-
-            dispatch({
-              type: "UPDATE_ISSUE",
-              issueNumber,
-              patch: {
-                status: "done",
-                completed_at: new Date().toISOString(),
-                pr: prInfo,
-              },
-            });
-          } else if (data.statusEnum === "stopped") {
-            dispatch({
-              type: "UPDATE_ISSUE",
-              issueNumber,
-              patch: {
-                status: "failed",
-                fix_progress: {
-                  status: "blocked",
-                  current_step: "",
-                  completed_steps: [],
-                  pr_url: null,
-                  blockers: [data.status || "Session stopped unexpectedly"],
-                },
-              },
-            });
-          } else {
-            dispatch({
-              type: "UPDATE_ISSUE",
-              issueNumber,
-              patch: {
-                status: "done",
-                completed_at: new Date().toISOString(),
-              },
-            });
           }
+          dispatch({ type: "UPDATE_ISSUE", issueNumber, patch: finalPatch });
+          dispatch({ type: "CLEAR_SESSION" });
+          break;
         }
-        dispatch({ type: "CLEAR_SESSION" });
-      } else if (type === "scoping" && data.structuredOutput) {
-        // Scoping produced output but session is still running/blocked
-        const output = data.structuredOutput;
-        dispatch({
-          type: "UPDATE_ISSUE",
-          issueNumber,
-          patch: {
-            status: "scoped",
-            confidence: output.confidence || "yellow",
-            scoping: output,
-            scoped_at: new Date().toISOString(),
-          },
-        });
-        dispatch({ type: "CLEAR_SESSION" });
-      } else if (data.statusEnum === "blocked") {
-        dispatch({
-          type: "UPDATE_ISSUE",
-          issueNumber,
-          patch: {
-            status: "blocked",
-            blocker: {
-              what_happened: data.status || "Devin needs input",
-              suggestion: "Please provide guidance to continue",
-            },
-          },
-        });
-        scheduleNextPoll("blocked");
-      } else {
-        scheduleNextPoll(type === "scoping" ? "scoping" : "fixing");
+
+        case "blocked":
+          dispatch({ type: "UPDATE_ISSUE", issueNumber, patch: result.patch });
+          scheduleNextPoll("blocked");
+          break;
+
+        case "continue":
+          scheduleNextPoll(result.nextPollCategory);
+          break;
       }
     } catch (err) {
       console.error("Polling error:", err);
@@ -506,7 +441,7 @@ export default function Dashboard({
   // --- Action Handlers ---
   const handleStartFix = useCallback(
     async (issue: DashboardIssue) => {
-      if (state.mode === "demo") return;
+      if (state.mode === "demo") { showDemoToast(); return; }
       if (!state.repo || !issue.scoping) return;
 
       dispatch({
@@ -563,12 +498,12 @@ export default function Dashboard({
         });
       }
     },
-    [state.mode, state.repo]
+    [state.mode, state.repo, showDemoToast]
   );
 
   const handleSendMessage = useCallback(
     async (sessionId: string, message: string) => {
-      if (state.mode === "demo") return;
+      if (state.mode === "demo") { showDemoToast(); return; }
 
       try {
         await fetch("/api/devin/message", {
@@ -584,12 +519,12 @@ export default function Dashboard({
         });
       }
     },
-    [state.mode]
+    [state.mode, showDemoToast]
   );
 
   const handleAbort = useCallback(
     async (issueNumber: number, sessionId: string) => {
-      if (state.mode === "demo") return;
+      if (state.mode === "demo") { showDemoToast(); return; }
 
       try {
         await fetch("/api/devin/terminate", {
@@ -611,11 +546,12 @@ export default function Dashboard({
         });
       }
     },
-    [state.mode]
+    [state.mode, showDemoToast]
   );
 
   const handleRetry = useCallback(
     (issue: DashboardIssue) => {
+      if (state.mode === "demo") { showDemoToast(); return; }
       // Reset to scoped state and trigger a new fix
       dispatch({
         type: "UPDATE_ISSUE",
@@ -639,12 +575,12 @@ export default function Dashboard({
         steps: [],
       });
     },
-    [handleStartFix]
+    [handleStartFix, state.mode, showDemoToast]
   );
 
   const handleApprove = useCallback(
     async (issueNumber: number, sessionId: string) => {
-      if (state.mode === "demo") return;
+      if (state.mode === "demo") { showDemoToast(); return; }
 
       // Send approval message to Devin
       try {
@@ -671,7 +607,7 @@ export default function Dashboard({
         });
       }
     },
-    [state.mode]
+    [state.mode, showDemoToast]
   );
 
   const actions: IssueActions = useMemo(
@@ -765,6 +701,13 @@ export default function Dashboard({
           }
         }}
       />
+
+      {/* Demo mode toast */}
+      {demoToast && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-dp-card border border-border-subtle rounded-lg px-4 py-2.5 shadow-lg">
+          <span className="text-text-secondary text-sm">{demoToast}</span>
+        </div>
+      )}
     </div>
   );
 }

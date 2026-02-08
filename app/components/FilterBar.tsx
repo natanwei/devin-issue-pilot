@@ -34,11 +34,17 @@ export default function FilterBar({
     filter.confidence === "all" && filter.status === "all";
 
   function handleConfidence(c: ConfidenceLevel | "all") {
-    onFilterChange({ confidence: c, status: "all" });
+    onFilterChange({
+      confidence: c === filter.confidence ? "all" : c,
+      status: "all",
+    });
   }
 
   function handleStatus(s: IssueStatus | "all") {
-    onFilterChange({ status: s, confidence: "all" });
+    onFilterChange({
+      status: s === filter.status ? "all" : s,
+      confidence: "all",
+    });
   }
 
   return (
@@ -74,7 +80,7 @@ export default function FilterBar({
               <button
                 key={level}
                 onClick={() => handleConfidence(level)}
-                className={`flex items-center gap-1.5 text-sm transition-colors ${
+                className={`relative flex items-center gap-1.5 text-sm transition-colors ${
                   isActive
                     ? "text-text-primary"
                     : "text-text-muted hover:text-text-secondary"

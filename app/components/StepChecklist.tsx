@@ -77,9 +77,11 @@ export default function StepChecklist({ steps }: StepChecklistProps) {
       {steps.map((step, i) => {
         const isLast = i === steps.length - 1;
         const leftBorder =
-          step.status === "in_progress" || step.status === "blocked"
+          step.status === "in_progress"
             ? "border-l-2 border-l-accent-blue"
-            : "";
+            : step.status === "blocked"
+              ? "border-l-2 border-l-accent-amber"
+              : "";
 
         return (
           <div

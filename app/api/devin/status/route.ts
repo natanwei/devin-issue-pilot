@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession, isTerminal } from "@/lib/devin";
+import { extractStructuredOutputFromMessages } from "@/lib/parsers";
 
 export const maxDuration = 30;
 
@@ -25,7 +26,7 @@ export async function GET(req: NextRequest) {
       createdAt: session.created_at,
       updatedAt: session.updated_at,
       pullRequest: session.pull_request || null,
-      structuredOutput: session.structured_output || null,
+      structuredOutput: session.structured_output || extractStructuredOutputFromMessages(session.messages) || null,
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unknown error";

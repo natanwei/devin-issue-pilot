@@ -86,12 +86,28 @@ export default function TopBar({
           <RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} />
         </button>
         <span className="text-[#444444]">·</span>
-        <button
-          onClick={onToggleMode}
-          className="text-text-muted hover:text-text-secondary transition-colors text-xs"
-        >
-          {mode === "demo" ? "Demo" : "Live"}
-        </button>
+        <div className="flex items-center bg-elevated rounded-full p-0.5 gap-0.5">
+          <button
+            onClick={mode === "live" ? onToggleMode : undefined}
+            className={`px-2 py-0.5 rounded-full text-xs font-medium transition-colors ${
+              mode === "demo"
+                ? "bg-dp-card text-text-primary"
+                : "text-text-muted hover:text-text-secondary cursor-pointer"
+            }`}
+          >
+            Demo
+          </button>
+          <button
+            onClick={mode === "demo" ? onToggleMode : undefined}
+            className={`px-2 py-0.5 rounded-full text-xs font-medium transition-colors ${
+              mode === "live"
+                ? "bg-accent-blue text-white"
+                : "text-text-muted hover:text-text-secondary cursor-pointer"
+            }`}
+          >
+            Live
+          </button>
+        </div>
       </div>
     </div>
   );

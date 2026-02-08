@@ -48,14 +48,12 @@ export default function IssueList({
               }`}
             >
               <div className="overflow-hidden">
-                {isExpanded && (
-                  <IssueDetail
-                    issue={issue}
-                    dispatch={dispatch}
-                    mode={mode}
-                    actions={actions}
-                  />
-                )}
+                <IssueDetail
+                  issue={issue}
+                  dispatch={dispatch}
+                  mode={mode}
+                  actions={actions}
+                />
               </div>
             </div>
           </div>
