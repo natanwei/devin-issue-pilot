@@ -40,6 +40,7 @@ function createInitialState(
     filter: { confidence: "all", status: "all" },
     sortBy: "confidence",
     acuModalOpen: false,
+    scopingApproved: mode === "demo",
     loading: mode === "live",
     error: null,
   };
@@ -56,6 +57,7 @@ function dashboardReducer(
         mode: action.mode,
         issues: action.mode === "demo" ? getDemoIssues() : state.issues,
         loading: action.mode === "live",
+        scopingApproved: action.mode === "demo",
       };
 
     case "SET_REPO":
@@ -106,6 +108,9 @@ function dashboardReducer(
 
     case "TOGGLE_ACU_MODAL":
       return { ...state, acuModalOpen: !state.acuModalOpen };
+
+    case "APPROVE_SCOPING":
+      return { ...state, scopingApproved: true };
 
     case "SET_LOADING":
       return { ...state, loading: action.loading };
@@ -228,6 +233,9 @@ export default function Dashboard({
       );
 
       dispatch({ type: "SET_ISSUES", issues });
+      if (!stateRef.current.scopingApproved) {
+        dispatch({ type: "TOGGLE_ACU_MODAL" });
+      }
     } catch (err) {
       dispatch({
         type: "SET_ERROR",
@@ -300,13 +308,13 @@ export default function Dashboard({
 
   // Auto-scope: pick up next pending issue when no session is active
   useEffect(() => {
-    if (state.mode !== "live" || state.activeSession || state.loading) return;
+    if (state.mode !== "live" || state.activeSession || state.loading || !state.scopingApproved) return;
 
     const pendingIssue = state.issues.find((i) => i.status === "pending");
     if (pendingIssue) {
       handleStartScope(pendingIssue);
     }
-  }, [state.mode, state.activeSession, state.loading, state.issues, handleStartScope]);
+  }, [state.mode, state.activeSession, state.loading, state.scopingApproved, state.issues, handleStartScope]);
 
   // --- Polling for active sessions ---
   const scheduleNextPoll = useCallback((status: string) => {
@@ -747,7 +755,10 @@ export default function Dashboard({
         onClose={() => dispatch({ type: "TOGGLE_ACU_MODAL" })}
         onConfirm={() => {
           dispatch({ type: "TOGGLE_ACU_MODAL" });
-          dispatch({ type: "SET_MODE", mode: "live" });
+          dispatch({ type: "APPROVE_SCOPING" });
+          if (state.mode === "demo") {
+            dispatch({ type: "SET_MODE", mode: "live" });
+          }
         }}
       />
     </div>

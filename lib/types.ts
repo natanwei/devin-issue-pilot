@@ -151,6 +151,7 @@ export interface DashboardState {
   filter: FilterState;
   sortBy: "confidence" | "number" | "status";
   acuModalOpen: boolean;
+  scopingApproved: boolean;
   loading: boolean;
   error: string | null;
 }
@@ -177,5 +178,6 @@ export type DashboardAction =
     }
   | { type: "CLEAR_SESSION" }
   | { type: "TOGGLE_ACU_MODAL" }
+  | { type: "APPROVE_SCOPING" }
   | { type: "SET_LOADING"; loading: boolean }
   | { type: "SET_ERROR"; error: string | null };
