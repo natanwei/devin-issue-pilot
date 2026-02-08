@@ -444,6 +444,20 @@ export default function Dashboard({
           }
         }
         dispatch({ type: "CLEAR_SESSION" });
+      } else if (type === "scoping" && data.structuredOutput) {
+        // Scoping produced output but session is still running/blocked
+        const output = data.structuredOutput;
+        dispatch({
+          type: "UPDATE_ISSUE",
+          issueNumber,
+          patch: {
+            status: "scoped",
+            confidence: output.confidence || "yellow",
+            scoping: output,
+            scoped_at: new Date().toISOString(),
+          },
+        });
+        dispatch({ type: "CLEAR_SESSION" });
       } else if (data.statusEnum === "blocked") {
         dispatch({
           type: "UPDATE_ISSUE",
