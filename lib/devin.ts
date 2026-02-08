@@ -176,5 +176,5 @@ export async function deleteSession(sessionId: string): Promise<void> {
 }
 
 export function isTerminal(statusEnum: DevinStatusEnum): boolean {
-  return statusEnum === "finished" || statusEnum === "stopped";
+  return statusEnum === "finished" || statusEnum === "stopped" || statusEnum === "expired";
 }

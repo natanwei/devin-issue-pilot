@@ -297,11 +297,15 @@ export default function Dashboard({
         issueNumber: issue.number,
         sessionType: "scoping",
       });
-    } catch {
+    } catch (err) {
       dispatch({
         type: "UPDATE_ISSUE",
         issueNumber: issue.number,
-        patch: { status: "pending" },
+        patch: { status: "failed" },
+      });
+      dispatch({
+        type: "SET_ERROR",
+        error: err instanceof Error ? err.message : "Failed to start scoping",
       });
     }
   }, []);
