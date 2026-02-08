@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createScopingSession } from "@/lib/devin";
+import { upsertIssueSession } from "@/lib/supabase";
 
 export const maxDuration = 60;
 
@@ -22,6 +23,33 @@ export async function POST(req: NextRequest) {
       repo,
       acuLimit: acuLimit || 3,
     });
+
+    // Persist to Supabase
+    upsertIssueSession({
+      repo,
+      issue_number: issueNumber,
+      status: "scoping",
+      scoping_session: {
+        session_id: result.session_id,
+        session_url: result.url,
+        started_at: new Date().toISOString(),
+      },
+    }).catch(() => {});
+
+    // Fire-and-forget webhook to n8n for async polling + Claude extraction
+    if (process.env.N8N_WEBHOOK_URL) {
+      fetch(process.env.N8N_WEBHOOK_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          sessionId: result.session_id,
+          issueNumber,
+          repo,
+          callbackUrl: `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/api/n8n/callback`,
+          secret: process.env.N8N_CALLBACK_SECRET || "",
+        }),
+      }).catch(() => {}); // non-blocking
+    }
 
     return NextResponse.json({
       sessionId: result.session_id,

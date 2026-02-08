@@ -6,6 +6,15 @@ import {
   DashboardAction,
   DashboardIssue,
   FilterState,
+  IssueStatus,
+  ConfidenceLevel,
+  ScopingResult,
+  SessionInfo,
+  FixProgress,
+  BlockerInfo,
+  PRInfo,
+  StepItem,
+  FileInfo,
 } from "@/lib/types";
 import {
   CONFIDENCE_SORT_ORDER,
@@ -249,7 +258,67 @@ export default function Dashboard({
         })
       );
 
+      // Hydrate from Supabase (merge persisted session data onto fresh GitHub issues)
+      try {
+        const sessionsRes = await fetch(
+          `/api/supabase/sessions?repo=${encodeURIComponent(`${owner}/${name}`)}`
+        );
+        if (sessionsRes.ok) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const sessions: any[] = await sessionsRes.json();
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const sessionMap = new Map<number, any>();
+          for (const s of sessions) {
+            sessionMap.set(s.issue_number, s);
+          }
+          for (let i = 0; i < issues.length; i++) {
+            const p = sessionMap.get(issues[i].number);
+            if (p) {
+              issues[i] = {
+                ...issues[i],
+                status: (p.status as IssueStatus) || issues[i].status,
+                confidence: (p.confidence as ConfidenceLevel) || null,
+                scoping: (p.scoping as ScopingResult) || null,
+                scoping_session: (p.scoping_session as SessionInfo) || null,
+                fix_session: (p.fix_session as SessionInfo) || null,
+                fix_progress: (p.fix_progress as FixProgress) || null,
+                blocker: (p.blocker as BlockerInfo) || null,
+                pr: (p.pr as PRInfo) || null,
+                steps: (p.steps as StepItem[]) || [],
+                files_info: (p.files_info as FileInfo[]) || [],
+                scoped_at: p.scoped_at || null,
+                fix_started_at: p.fix_started_at || null,
+                completed_at: p.completed_at || null,
+              };
+            }
+          }
+        }
+      } catch {
+        // Supabase hydration failure is non-critical
+      }
+
       dispatch({ type: "SET_ISSUES", issues });
+
+      // Resume polling for any in-progress session
+      const activeIssue = issues.find(
+        (i) => (i.status === "scoping" || i.status === "fixing") &&
+               (i.scoping_session || i.fix_session)
+      );
+      if (activeIssue) {
+        const session = activeIssue.status === "scoping"
+          ? activeIssue.scoping_session
+          : activeIssue.fix_session;
+        if (session) {
+          dispatch({
+            type: "SET_SESSION",
+            sessionId: session.session_id,
+            sessionUrl: session.session_url,
+            issueNumber: activeIssue.number,
+            sessionType: activeIssue.status as "scoping" | "fixing",
+          });
+        }
+      }
+
       if (!stateRef.current.scopingApproved) {
         dispatch({ type: "TOGGLE_ACU_MODAL" });
       }
@@ -351,8 +420,9 @@ export default function Dashboard({
     const { sessionId, issueNumber, type } = current.activeSession;
 
     try {
+      const repoStr = current.repo ? `${current.repo.owner}/${current.repo.name}` : "";
       const res = await fetch(
-        `/api/devin/status?sessionId=${encodeURIComponent(sessionId)}`
+        `/api/devin/status?sessionId=${encodeURIComponent(sessionId)}&repo=${encodeURIComponent(repoStr)}&issueNumber=${issueNumber}`
       );
       if (!res.ok) throw new Error("Polling failed");
       const data = await res.json();

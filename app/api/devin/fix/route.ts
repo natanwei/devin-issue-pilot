@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createFixSession } from "@/lib/devin";
+import { upsertIssueSession } from "@/lib/supabase";
 
 export const maxDuration = 60;
 
@@ -30,6 +31,19 @@ export async function POST(req: NextRequest) {
       acuLimit: acuLimit || 15,
       scopingResult,
     });
+
+    // Persist to Supabase
+    upsertIssueSession({
+      repo,
+      issue_number: issueNumber,
+      status: "fixing",
+      fix_session: {
+        session_id: result.session_id,
+        session_url: result.url,
+        started_at: new Date().toISOString(),
+      },
+      fix_started_at: new Date().toISOString(),
+    }).catch(() => {});
 
     return NextResponse.json({
       sessionId: result.session_id,
