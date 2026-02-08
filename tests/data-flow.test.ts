@@ -17,7 +17,7 @@ const RAW_SCOPING_COMPLETE = {
   session_id: "ses_scope_abc123",
   status: "session has finished",
   status_enum: "finished" as const,
-  title: "Scope: natanweitzman/devin-issue-pilot#14 — Fix health endpoint",
+  title: "Scope: natanwei/devin-issue-pilot#14 — Fix health endpoint",
   created_at: "2026-02-08T10:00:00Z",
   updated_at: "2026-02-08T10:05:00Z",
   pull_request: null,
@@ -42,10 +42,10 @@ const RAW_FIX_WITH_PR = {
   session_id: "ses_fix_def456",
   status: "session has finished",
   status_enum: "finished" as const,
-  title: "Fix: natanweitzman/devin-issue-pilot#14 — Fix health endpoint",
+  title: "Fix: natanwei/devin-issue-pilot#14 — Fix health endpoint",
   created_at: "2026-02-08T10:10:00Z",
   updated_at: "2026-02-08T10:25:00Z",
-  pull_request: { url: "https://github.com/natanweitzman/devin-issue-pilot/pull/42" },
+  pull_request: { url: "https://github.com/natanwei/devin-issue-pilot/pull/42" },
   structured_output: null,
 };
 
@@ -53,7 +53,7 @@ const RAW_BLOCKED = {
   session_id: "ses_blocked_ghi789",
   status: "Need access to staging environment to test changes",
   status_enum: "blocked" as const,
-  title: "Fix: natanweitzman/devin-issue-pilot#21 — Migrate DB",
+  title: "Fix: natanwei/devin-issue-pilot#21 — Migrate DB",
   created_at: "2026-02-08T10:30:00Z",
   updated_at: "2026-02-08T10:35:00Z",
   pull_request: null,
@@ -64,7 +64,7 @@ const RAW_FIX_STOPPED = {
   session_id: "ses_stopped_jkl012",
   status: "Session stopped due to error in test suite",
   status_enum: "stopped" as const,
-  title: "Fix: natanweitzman/devin-issue-pilot#15 — Fix rate limiter",
+  title: "Fix: natanwei/devin-issue-pilot#15 — Fix rate limiter",
   created_at: "2026-02-08T10:40:00Z",
   updated_at: "2026-02-08T10:50:00Z",
   pull_request: null,
@@ -75,7 +75,7 @@ const RAW_EXPIRED = {
   session_id: "ses_expired_mno345",
   status: "session has expired",
   status_enum: "expired" as const,
-  title: "Scope: natanweitzman/devin-issue-pilot#10 — Implement webhooks",
+  title: "Scope: natanwei/devin-issue-pilot#10 — Implement webhooks",
   created_at: "2026-02-08T08:00:00Z",
   updated_at: "2026-02-08T08:30:00Z",
   pull_request: null,
@@ -146,7 +146,7 @@ describe("Full data flow: fix with PR", () => {
     expect(parsed.sessionId).toBe("ses_fix_def456");
     expect(parsed.isTerminal).toBe(true);
     expect(parsed.pullRequest?.url).toBe(
-      "https://github.com/natanweitzman/devin-issue-pilot/pull/42",
+      "https://github.com/natanwei/devin-issue-pilot/pull/42",
     );
 
     const result = interpretPollResult(parsed, "fixing", {
@@ -161,7 +161,7 @@ describe("Full data flow: fix with PR", () => {
       expect(result.patch.pr).not.toBeNull();
       expect(result.patch.pr!.number).toBe(42);
       expect(result.patch.pr!.url).toBe(
-        "https://github.com/natanweitzman/devin-issue-pilot/pull/42",
+        "https://github.com/natanwei/devin-issue-pilot/pull/42",
       );
     }
   });
@@ -170,7 +170,7 @@ describe("Full data flow: fix with PR", () => {
     const prUrl = RAW_FIX_WITH_PR.pull_request.url;
     const parsed = parsePRUrl(prUrl);
     expect(parsed).toEqual({
-      owner: "natanweitzman",
+      owner: "natanwei",
       repo: "devin-issue-pilot",
       prNumber: 42,
     });
