@@ -87,7 +87,7 @@ export default function SettingsPanel({
         </div>
 
         {/* Setup Guide */}
-        <div className="border border-border-subtle rounded-md overflow-hidden">
+        <div className="border border-border-subtle rounded-md overflow-hidden shrink-0">
           <button
             onClick={() => setGuideOpen(!guideOpen)}
             className="w-full flex items-center justify-between px-3 py-2.5 bg-elevated hover:bg-elevated/80 transition-colors"
@@ -102,7 +102,7 @@ export default function SettingsPanel({
             )}
           </button>
           {guideOpen && (
-            <div className="px-3 py-3 flex flex-col gap-3 text-sm">
+            <div className="px-3 py-3 flex flex-col gap-3 text-sm max-h-[200px] overflow-y-auto">
               <div className="flex gap-2.5">
                 <span className="text-accent-purple font-semibold shrink-0">1.</span>
                 <div className="flex flex-col gap-1">
