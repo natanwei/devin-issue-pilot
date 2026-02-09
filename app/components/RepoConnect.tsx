@@ -99,7 +99,7 @@ export default function RepoConnect({ onConnect }: RepoConnectProps) {
           </form>
 
           <p className="text-text-muted text-xs text-center">
-            Without custom API keys, only public repos can be scoped.{" "}
+            Without custom API keys, only public repos can be scoped and PRs cannot be created.{" "}
             <button
               onClick={() => setSettingsOpen(true)}
               className="text-accent-blue hover:underline"

@@ -1022,7 +1022,7 @@ export default function Dashboard({
       {state.mode === "live" && !hasKeys && !keysBannerDismissed && (
         <div className="w-full bg-accent-blue/10 border-b border-accent-blue/20 px-4 py-2 flex items-center justify-between gap-3">
           <span className="text-accent-blue text-sm">
-            No custom API keys configured — only public repos can be scoped.
+            No custom API keys configured — only public repos can be scoped and PRs cannot be created.
           </span>
           <div className="flex items-center gap-2">
             <button
