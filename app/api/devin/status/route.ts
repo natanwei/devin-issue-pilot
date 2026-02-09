@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession, isTerminal } from "@/lib/devin";
 import { extractStructuredOutputFromMessages, parseStructuredOutput } from "@/lib/parsers";
-import { getCachedResult } from "@/lib/n8n-cache";
-import { upsertIssueSession } from "@/lib/supabase";
+import { getIssueSessionByDevinId, upsertIssueSession } from "@/lib/supabase";
 
 export const maxDuration = 30;
 
@@ -20,20 +19,36 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const cached = getCachedResult(sessionId);
-    const session = await getSession(sessionId);
+    const [supabaseRow, session] = await Promise.all([
+      getIssueSessionByDevinId(sessionId),
+      getSession(sessionId),
+    ]);
 
-    const structuredOutput = cached?.structuredOutput
-      || session.structured_output
+    // n8n already extracted and persisted → use Supabase as source of truth
+    if (supabaseRow?.status === "scoped" && supabaseRow?.scoping) {
+      return NextResponse.json({
+        sessionId: session.session_id,
+        statusEnum: session.status_enum,
+        status: session.status,
+        isTerminal: true,
+        createdAt: session.created_at,
+        updatedAt: session.updated_at,
+        pullRequest: session.pull_request || null,
+        structuredOutput: supabaseRow.scoping,
+      });
+    }
+
+    // Fallback: local extraction (n8n hasn't written yet)
+    const structuredOutput = session.structured_output
       || extractStructuredOutputFromMessages(session.messages)
       || null;
 
     const terminal = isTerminal(session.status_enum);
 
-    // Persist terminal results to Supabase
-    if (terminal && repo && issueNumber) {
+    // Persist results to Supabase when terminal or when we have output
+    if ((terminal || structuredOutput) && repo && issueNumber) {
       const parsed = structuredOutput ? parseStructuredOutput(structuredOutput) : null;
-      upsertIssueSession({
+      await upsertIssueSession({
         repo,
         issue_number: parseInt(issueNumber, 10),
         status: session.pull_request ? "done" : parsed ? "scoped" : session.status_enum,

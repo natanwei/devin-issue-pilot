@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { setCachedResult } from "@/lib/n8n-cache";
 import { getIssueSessionByDevinId, upsertIssueSession } from "@/lib/supabase";
 import { parseStructuredOutput } from "@/lib/parsers";
 
@@ -20,8 +19,6 @@ export async function POST(req: NextRequest) {
         { status: 400 },
       );
     }
-
-    setCachedResult(sessionId, structuredOutput);
 
     // Persist to Supabase
     const existingRow = await getIssueSessionByDevinId(sessionId);
