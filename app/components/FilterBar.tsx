@@ -1,8 +1,7 @@
 "use client";
 
-import { ConfidenceLevel, DashboardIssue, FilterState, StatusFilter } from "@/lib/types";
+import { ConfidenceLevel, DashboardIssue, FilterState, IssueStatus } from "@/lib/types";
 import { CONFIDENCE_CONFIG } from "@/lib/constants";
-import { STATUS_GROUPS } from "@/lib/filters";
 
 interface FilterBarProps {
   filter: FilterState;
@@ -12,14 +11,6 @@ interface FilterBarProps {
   onSortChange: (sortBy: "confidence" | "number" | "status") => void;
   onScopeAll: () => void;
 }
-
-const STATUS_LABELS: Record<Exclude<StatusFilter, "all">, string> = {
-  pending: "Pending",
-  active: "Active",
-  scoped: "Scoped",
-  done: "Done",
-  error: "Error",
-};
 
 export default function FilterBar({
   filter,
@@ -33,26 +24,30 @@ export default function FilterBar({
   const yellowCount = issues.filter((i) => i.confidence === "yellow").length;
   const redCount = issues.filter((i) => i.confidence === "red").length;
 
+  const scopingCount = issues.filter((i) => i.status === "scoping").length;
+  const fixingCount = issues.filter(
+    (i) => i.status === "fixing" || i.status === "blocked"
+  ).length;
+  const doneCount = issues.filter(
+    (i) => i.status === "done" || i.status === "pr_open"
+  ).length;
+
   const isAllActive =
     filter.confidence === "all" && filter.status === "all";
 
   function handleConfidence(c: ConfidenceLevel | "all") {
     onFilterChange({
       confidence: c === filter.confidence ? "all" : c,
+      status: "all",
     });
   }
 
-  function handleStatus(s: StatusFilter) {
+  function handleStatus(s: IssueStatus | "all") {
     onFilterChange({
       status: s === filter.status ? "all" : s,
+      confidence: "all",
     });
   }
-
-  const statusButtons = (Object.keys(STATUS_GROUPS) as Exclude<StatusFilter, "all">[]).map((key) => {
-    const statuses = STATUS_GROUPS[key];
-    const count = issues.filter((i) => statuses.includes(i.status)).length;
-    return { key, label: STATUS_LABELS[key], count };
-  });
 
   return (
     <div className="flex items-center gap-2 sm:gap-4 md:gap-6 h-11 px-3 sm:px-4 md:px-6 bg-page overflow-x-auto">
@@ -119,19 +114,36 @@ export default function FilterBar({
           <span className="text-[11px] text-text-muted uppercase tracking-wider font-semibold hidden sm:inline">
             Status
           </span>
-          {statusButtons.map(({ key, label, count }) => (
-            <button
-              key={key}
-              onClick={() => handleStatus(key)}
-              className={`text-sm transition-colors ${
-                filter.status === key
-                  ? "text-text-primary"
-                  : "text-text-muted hover:text-text-secondary"
-              }`}
-            >
-              {label}{count > 0 && ` (${count})`}
-            </button>
-          ))}
+          <button
+            onClick={() => handleStatus("scoping")}
+            className={`text-sm transition-colors ${
+              filter.status === "scoping"
+                ? "text-text-primary"
+                : "text-text-muted hover:text-text-secondary"
+            }`}
+          >
+            Scoping{scopingCount > 0 && ` (${scopingCount})`}
+          </button>
+          <button
+            onClick={() => handleStatus("fixing")}
+            className={`text-sm transition-colors ${
+              filter.status === "fixing"
+                ? "text-text-primary"
+                : "text-text-muted hover:text-text-secondary"
+            }`}
+          >
+            Fixing{fixingCount > 0 && ` (${fixingCount})`}
+          </button>
+          <button
+            onClick={() => handleStatus("done")}
+            className={`text-sm transition-colors ${
+              filter.status === "done"
+                ? "text-text-primary"
+                : "text-text-muted hover:text-text-secondary"
+            }`}
+          >
+            Done{doneCount > 0 && ` (${doneCount})`}
+          </button>
         </div>
       </div>
 

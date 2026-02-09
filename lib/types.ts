@@ -132,11 +132,9 @@ export interface DashboardIssue {
 
 // --- Dashboard state (useReducer) ---
 
-export type StatusFilter = "all" | "pending" | "active" | "scoped" | "done" | "error";
-
 export interface FilterState {
   confidence: ConfidenceLevel | "all";
-  status: StatusFilter;
+  status: IssueStatus | "all";
 }
 
 export interface DashboardState {
