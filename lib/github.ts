@@ -51,6 +51,22 @@ export async function listIssues(
     }));
 }
 
+export async function getLatestCommit(
+  owner: string,
+  repo: string
+): Promise<{ sha: string; date: string }> {
+  const octokit = getOctokit();
+  const { data } = await octokit.repos.listCommits({
+    owner,
+    repo,
+    per_page: 1,
+  });
+  return {
+    sha: data[0].sha,
+    date: data[0].commit.committer?.date || data[0].commit.author?.date || new Date().toISOString(),
+  };
+}
+
 export async function getFileInfo(
   owner: string,
   repo: string,

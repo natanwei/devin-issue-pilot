@@ -21,6 +21,7 @@ import {
   POLLING_INTERVALS,
   TIMEOUT_LIMITS,
   ACU_LIMITS,
+  ISSUE_REFRESH_INTERVAL,
 } from "@/lib/constants";
 import { interpretPollResult } from "@/lib/parsers";
 import { getDemoIssues } from "@/lib/demo-data";
@@ -53,6 +54,7 @@ function createInitialState(
     scopingApproved: mode === "demo",
     loading: mode === "live",
     error: null,
+    lastMainCommitDate: null,
   };
 }
 
@@ -128,6 +130,16 @@ function dashboardReducer(
     case "SET_ERROR":
       return { ...state, error: action.error };
 
+    case "ADD_ISSUES": {
+      const existingNumbers = new Set(state.issues.map((i) => i.number));
+      const fresh = action.issues.filter((i) => !existingNumbers.has(i.number));
+      if (fresh.length === 0) return state;
+      return { ...state, issues: [...state.issues, ...fresh] };
+    }
+
+    case "SET_MAIN_COMMIT_DATE":
+      return { ...state, lastMainCommitDate: action.date };
+
     default:
       return state;
   }
@@ -196,6 +208,7 @@ export default function Dashboard({
   );
 
   const pollingRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const issueRefreshRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const scopingInProgressRef = useRef(false);
   const stateRef = useRef(state);
   stateRef.current = state;
@@ -422,6 +435,79 @@ export default function Dashboard({
       handleStartScope(pendingIssue);
     }
   }, [state.mode, state.activeSession, state.loading, state.scopingApproved, state.issues, handleStartScope]);
+
+  // --- Periodic issue refresh (every 60s in live mode) ---
+  const refreshIssues = useCallback(async () => {
+    if (stateRef.current.mode !== "live" || !stateRef.current.repo) return;
+
+    const { owner, name } = stateRef.current.repo;
+
+    try {
+      // Fetch new issues and latest commit in parallel
+      const [issuesRes, commitRes] = await Promise.all([
+        fetch(
+          `/api/github/issues?owner=${encodeURIComponent(owner)}&repo=${encodeURIComponent(name)}`
+        ),
+        fetch(
+          `/api/github/latest-commit?owner=${encodeURIComponent(owner)}&repo=${encodeURIComponent(name)}`
+        ),
+      ]);
+
+      if (issuesRes.ok) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const raw: any[] = await issuesRes.json();
+        const newIssues: DashboardIssue[] = raw.map((r) => ({
+          number: r.number,
+          title: r.title,
+          body: r.body || "",
+          labels: r.labels,
+          created_at: r.created_at,
+          updated_at: r.updated_at,
+          github_url: r.html_url,
+          status: "pending" as const,
+          confidence: null,
+          scoping: null,
+          files_info: [],
+          fix_progress: null,
+          blocker: null,
+          pr: null,
+          steps: [],
+          scoping_session: null,
+          fix_session: null,
+          scoped_at: null,
+          fix_started_at: null,
+          completed_at: null,
+        }));
+        dispatch({ type: "ADD_ISSUES", issues: newIssues });
+      }
+
+      if (commitRes.ok) {
+        const commit = await commitRes.json();
+        if (commit.date) {
+          dispatch({ type: "SET_MAIN_COMMIT_DATE", date: commit.date });
+        }
+      }
+    } catch {
+      // Silent failure — refresh is best-effort
+    }
+  }, []);
+
+  useEffect(() => {
+    if (state.mode !== "live" || state.loading) return;
+
+    const scheduleRefresh = () => {
+      issueRefreshRef.current = setTimeout(async () => {
+        await refreshIssues();
+        scheduleRefresh();
+      }, ISSUE_REFRESH_INTERVAL);
+    };
+
+    scheduleRefresh();
+
+    return () => {
+      if (issueRefreshRef.current) clearTimeout(issueRefreshRef.current);
+    };
+  }, [state.mode, state.loading, refreshIssues]);
 
   // --- Polling for active sessions ---
   const scheduleNextPoll = useCallback((status: string) => {
@@ -776,6 +862,7 @@ export default function Dashboard({
             dispatch={dispatch}
             mode={state.mode}
             actions={actions}
+            lastMainCommitDate={state.lastMainCommitDate}
           />
         </div>
       )}

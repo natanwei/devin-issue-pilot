@@ -10,6 +10,7 @@ interface IssueRowProps {
   issue: DashboardIssue;
   isExpanded: boolean;
   onToggle: () => void;
+  lastMainCommitDate: string | null;
 }
 
 function getTimeSince(dateStr: string): string {
@@ -23,9 +24,14 @@ function getTimeSince(dateStr: string): string {
   return "just now";
 }
 
-export default function IssueRow({ issue, isExpanded, onToggle }: IssueRowProps) {
+export default function IssueRow({ issue, isExpanded, onToggle, lastMainCommitDate }: IssueRowProps) {
   const fileCount = issue.files_info.length || issue.scoping?.files_to_modify.length || 0;
   const totalLines = issue.files_info.reduce((sum, f) => sum + (f.lines || 0), 0);
+  const isStale = !!(
+    issue.scoped_at &&
+    lastMainCommitDate &&
+    new Date(lastMainCommitDate).getTime() > new Date(issue.scoped_at).getTime()
+  );
 
   const borderColor = issue.confidence
     ? CONFIDENCE_CONFIG[issue.confidence].color
@@ -70,6 +76,9 @@ export default function IssueRow({ issue, isExpanded, onToggle }: IssueRowProps)
 
       {/* File/line info */}
       <span className="text-text-muted text-xs flex-shrink-0 hidden sm:inline">
+        {isStale && (
+          <span className="text-accent-amber mr-1.5">Outdated</span>
+        )}
         {fileCount > 0 && `${fileCount} file${fileCount > 1 ? "s" : ""}`}
         {totalLines > 0 && ` · ~${totalLines} lines`}
         {issue.created_at && ` · ${getTimeSince(issue.created_at)}`}

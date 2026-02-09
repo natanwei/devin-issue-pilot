@@ -154,6 +154,7 @@ export interface DashboardState {
   scopingApproved: boolean;
   loading: boolean;
   error: string | null;
+  lastMainCommitDate: string | null;
 }
 
 export type DashboardAction =
@@ -180,4 +181,6 @@ export type DashboardAction =
   | { type: "TOGGLE_ACU_MODAL" }
   | { type: "APPROVE_SCOPING" }
   | { type: "SET_LOADING"; loading: boolean }
-  | { type: "SET_ERROR"; error: string | null };
+  | { type: "SET_ERROR"; error: string | null }
+  | { type: "ADD_ISSUES"; issues: DashboardIssue[] }
+  | { type: "SET_MAIN_COMMIT_DATE"; date: string | null };

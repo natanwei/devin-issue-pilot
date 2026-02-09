@@ -10,6 +10,7 @@ interface IssueListProps {
   dispatch: React.Dispatch<DashboardAction>;
   mode: "demo" | "live";
   actions: IssueActions;
+  lastMainCommitDate: string | null;
 }
 
 export default function IssueList({
@@ -18,6 +19,7 @@ export default function IssueList({
   dispatch,
   mode,
   actions,
+  lastMainCommitDate,
 }: IssueListProps) {
   if (issues.length === 0) {
     return (
@@ -40,6 +42,7 @@ export default function IssueList({
               onToggle={() =>
                 dispatch({ type: "TOGGLE_EXPAND", issueNumber: issue.number })
               }
+              lastMainCommitDate={lastMainCommitDate}
             />
             {/* Accordion content area */}
             <div

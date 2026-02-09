@@ -67,3 +67,5 @@ export const CONFIDENCE_SORT_ORDER: Record<ConfidenceLevel, number> = {
   yellow: 1,
   red: 2,
 };
+
+export const ISSUE_REFRESH_INTERVAL = 60_000; // 60 seconds
