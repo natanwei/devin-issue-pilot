@@ -179,7 +179,7 @@ export default function SettingsPanel({
                 type={showDevin ? "text" : "password"}
                 value={devinDraft.trim() === "" ? devinDraft.trimStart() : devinDraft}
                 onChange={(e) => setDevinDraft(e.target.value)}
-                placeholder="dv-..."
+                placeholder="apk_user_..."
                 className="w-full bg-elevated border border-border-subtle rounded-md px-3 py-2 pr-10 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent-blue transition-colors"
                 autoComplete="off"
               />
