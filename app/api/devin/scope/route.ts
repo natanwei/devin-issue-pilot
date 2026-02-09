@@ -24,8 +24,8 @@ export async function POST(req: NextRequest) {
       acuLimit: acuLimit || 3,
     });
 
-    // Persist to Supabase
-    upsertIssueSession({
+    // Persist to Supabase (must await on Vercel — fire-and-forget gets killed)
+    await upsertIssueSession({
       repo,
       issue_number: issueNumber,
       status: "scoping",
@@ -36,9 +36,9 @@ export async function POST(req: NextRequest) {
       },
     }).catch(() => {});
 
-    // Fire-and-forget webhook to n8n for async polling + Claude extraction
+    // Webhook to n8n for async polling + Claude extraction (must await on Vercel)
     if (process.env.N8N_WEBHOOK_URL) {
-      fetch(process.env.N8N_WEBHOOK_URL, {
+      await fetch(process.env.N8N_WEBHOOK_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -48,7 +48,7 @@ export async function POST(req: NextRequest) {
           callbackUrl: `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/api/n8n/callback`,
           secret: process.env.N8N_CALLBACK_SECRET || "",
         }),
-      }).catch(() => {}); // non-blocking
+      }).catch(() => {});
     }
 
     return NextResponse.json({
