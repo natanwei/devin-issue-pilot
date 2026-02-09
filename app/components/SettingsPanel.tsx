@@ -242,7 +242,7 @@ export default function SettingsPanel({
         <p className="text-text-muted text-xs leading-relaxed">
           Keys are stored in sessionStorage and cleared when you close this tab.
           They are sent per-request and never persisted server-side. If not
-          provided, the server&apos;s default keys are used.
+          provided, the server&apos;s default keys are used (public repos only, no PR creation).
         </p>
 
         {/* Buttons */}
