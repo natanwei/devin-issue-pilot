@@ -221,6 +221,7 @@ export default function Dashboard({
   keysRef.current = keys;
 
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [keysBannerDismissed, setKeysBannerDismissed] = useState(false);
 
   const filteredIssues = useMemo(
     () => filterAndSortIssues(state.issues, state.filter, state.sortBy),
@@ -927,6 +928,28 @@ export default function Dashboard({
           >
             Dismiss
           </button>
+        </div>
+      )}
+
+      {state.mode === "live" && !hasKeys && !keysBannerDismissed && (
+        <div className="w-full bg-accent-blue/10 border-b border-accent-blue/20 px-4 py-2 flex items-center justify-between gap-3">
+          <span className="text-accent-blue text-sm">
+            No custom API keys configured — only public repos can be scoped.
+          </span>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setSettingsOpen(true)}
+              className="text-accent-blue text-xs font-medium hover:underline whitespace-nowrap"
+            >
+              Open Settings
+            </button>
+            <button
+              onClick={() => setKeysBannerDismissed(true)}
+              className="text-accent-blue/60 text-xs hover:underline whitespace-nowrap"
+            >
+              Dismiss
+            </button>
+          </div>
         </div>
       )}
 

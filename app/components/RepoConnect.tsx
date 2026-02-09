@@ -85,6 +85,11 @@ export default function RepoConnect({ onConnect }: RepoConnectProps) {
             </button>
           </form>
 
+          <p className="text-text-muted text-xs text-center">
+            Without custom API keys, only public repos can be scoped.{" "}
+            Configure keys in Settings after connecting.
+          </p>
+
           {/* Demo link */}
           <button
             onClick={handleDemo}

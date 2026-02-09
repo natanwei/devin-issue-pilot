@@ -102,7 +102,7 @@ export default function SettingsPanel({
             )}
           </button>
           {guideOpen && (
-            <div className="px-3 py-3 flex flex-col gap-3 text-sm max-h-48 overflow-y-auto">
+            <div className="px-3 py-3 flex flex-col gap-3 text-sm">
               <div className="flex gap-2.5">
                 <span className="text-accent-purple font-semibold shrink-0">1.</span>
                 <div className="flex flex-col gap-1">
