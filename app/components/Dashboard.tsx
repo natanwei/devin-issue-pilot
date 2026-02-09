@@ -210,6 +210,7 @@ export default function Dashboard({
   const pollingRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const issueRefreshRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const scopingInProgressRef = useRef(false);
+  const pendingMessagesRef = useRef<Map<number, string>>(new Map());
   const stateRef = useRef(state);
   stateRef.current = state;
 
@@ -613,7 +614,7 @@ export default function Dashboard({
 
   // --- Action Handlers ---
   const handleStartFix = useCallback(
-    async (issue: DashboardIssue) => {
+    async (issue: DashboardIssue, previousContext?: string) => {
       if (state.mode === "demo") { showDemoToast(); return; }
       if (!state.repo || !issue.scoping) return;
 
@@ -634,6 +635,7 @@ export default function Dashboard({
             repo: `${state.repo.owner}/${state.repo.name}`,
             acuLimit: ACU_LIMITS.fixing,
             scopingResult: issue.scoping,
+            previousContext,
           }),
         });
 
@@ -679,12 +681,23 @@ export default function Dashboard({
       if (state.mode === "demo") { showDemoToast(); return; }
 
       try {
-        await fetch("/api/devin/message", {
+        const res = await fetch("/api/devin/message", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ sessionId, message }),
         });
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          throw new Error(data.error || `Message failed (${res.status})`);
+        }
       } catch (err) {
+        // Find the issue this message was for, save the pending message
+        const issue = state.issues.find(
+          (i) => i.fix_session?.session_id === sessionId || i.scoping_session?.session_id === sessionId
+        );
+        if (issue) {
+          pendingMessagesRef.current.set(issue.number, message);
+        }
         dispatch({
           type: "SET_ERROR",
           error:
@@ -692,7 +705,7 @@ export default function Dashboard({
         });
       }
     },
-    [state.mode, showDemoToast]
+    [state.mode, state.issues, showDemoToast]
   );
 
   const handleAbort = useCallback(
@@ -700,11 +713,15 @@ export default function Dashboard({
       if (state.mode === "demo") { showDemoToast(); return; }
 
       try {
-        await fetch("/api/devin/terminate", {
+        const res = await fetch("/api/devin/terminate", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ sessionId }),
         });
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          throw new Error(data.error || `Abort failed (${res.status})`);
+        }
 
         dispatch({
           type: "UPDATE_ISSUE",
@@ -723,8 +740,38 @@ export default function Dashboard({
   );
 
   const handleRetry = useCallback(
-    (issue: DashboardIssue) => {
+    async (issue: DashboardIssue) => {
       if (state.mode === "demo") { showDemoToast(); return; }
+
+      // Build context from the previous session (blocker Q + pending user answer)
+      let previousContext: string | undefined;
+      const pendingMsg = pendingMessagesRef.current.get(issue.number);
+      if (issue.blocker || pendingMsg) {
+        const parts: string[] = [];
+        if (issue.blocker) {
+          parts.push(`A previous session asked: "${issue.blocker.what_happened}"`);
+          parts.push(`Suggestion was: "${issue.blocker.suggestion}"`);
+        }
+        if (pendingMsg) {
+          parts.push(`The user responded: "${pendingMsg}"`);
+          pendingMessagesRef.current.delete(issue.number);
+        }
+        previousContext = parts.join("\n");
+      }
+
+      // Terminate the old session to avoid idempotent reuse
+      if (issue.fix_session?.session_id) {
+        try {
+          await fetch("/api/devin/terminate", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ sessionId: issue.fix_session.session_id }),
+          });
+        } catch {
+          // Best effort — session may already be terminated
+        }
+      }
+
       // Reset to scoped state and trigger a new fix
       dispatch({
         type: "UPDATE_ISSUE",
@@ -738,7 +785,7 @@ export default function Dashboard({
           completed_at: null,
         },
       });
-      // Then start fix again
+      // Start fix with previous context
       handleStartFix({
         ...issue,
         status: "scoped",
@@ -746,7 +793,7 @@ export default function Dashboard({
         blocker: null,
         fix_session: null,
         steps: [],
-      });
+      }, previousContext);
     },
     [handleStartFix, state.mode, showDemoToast]
   );
@@ -757,7 +804,7 @@ export default function Dashboard({
 
       // Send approval message to Devin
       try {
-        await fetch("/api/devin/message", {
+        const res = await fetch("/api/devin/message", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -766,6 +813,10 @@ export default function Dashboard({
               "Approved. Please proceed with the suggested approach.",
           }),
         });
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          throw new Error(data.error || `Approval failed (${res.status})`);
+        }
 
         dispatch({
           type: "UPDATE_ISSUE",

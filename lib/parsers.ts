@@ -239,6 +239,20 @@ export function interpretPollResult(
     };
   }
 
+  // 5b. Session sleeping (suspend_requested)
+  if (data.statusEnum === "suspend_requested") {
+    return {
+      action: "blocked",
+      patch: {
+        status: "blocked",
+        blocker: {
+          what_happened: "Devin session went to sleep due to inactivity",
+          suggestion: "Click Retry to start a new session with your previous context",
+        },
+      },
+    };
+  }
+
   // 6. Continue polling
   return {
     action: "continue",

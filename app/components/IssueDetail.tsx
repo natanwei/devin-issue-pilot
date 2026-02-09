@@ -14,6 +14,7 @@ import {
   XCircle,
   Timer,
   Search,
+  RefreshCw,
 } from "lucide-react";
 
 export interface IssueActions {
@@ -30,6 +31,7 @@ interface IssueDetailProps {
   dispatch: React.Dispatch<DashboardAction>;
   mode: "demo" | "live";
   actions: IssueActions;
+  lastMainCommitDate?: string | null;
 }
 
 // --- Shared sub-layouts ---
@@ -206,17 +208,41 @@ function SessionStats({ issue }: { issue: DashboardIssue }) {
 function ScopedView({
   issue,
   actions,
+  lastMainCommitDate,
 }: {
   issue: DashboardIssue;
   actions: IssueActions;
+  lastMainCommitDate?: string | null;
 }) {
   const isYellow = issue.confidence === "yellow";
   const isRed = issue.confidence === "red";
   const questions = issue.scoping?.open_questions || [];
   const sessionId = issue.scoping_session?.session_id;
+  const isStale = !!(
+    issue.scoped_at &&
+    lastMainCommitDate &&
+    new Date(lastMainCommitDate).getTime() > new Date(issue.scoped_at).getTime()
+  );
 
   return (
     <>
+      {isStale && (
+        <div
+          className="flex items-center justify-between bg-[#1a1a1a] px-4 py-3 rounded-md"
+          style={{ borderLeft: "3px solid #f59e0b" }}
+        >
+          <span className="text-accent-amber text-sm">
+            Outdated — scope may be inaccurate since the codebase has changed
+          </span>
+          <button
+            onClick={() => actions.onStartScope(issue)}
+            className="inline-flex items-center gap-1.5 text-accent-blue text-sm font-medium hover:opacity-80 transition-opacity"
+          >
+            <Search className="h-3.5 w-3.5" />
+            Re-scope
+          </button>
+        </div>
+      )}
       <DetailGrid issue={issue} />
 
       {(isYellow || isRed) && questions.length > 0 && (
@@ -412,6 +438,7 @@ function BlockedView({
   actions: IssueActions;
 }) {
   const sessionId = issue.fix_session?.session_id;
+  const isSleeping = issue.blocker?.what_happened.includes("went to sleep") ?? false;
 
   return (
     <>
@@ -449,14 +476,26 @@ function BlockedView({
 
       {/* Footer */}
       <div className="flex items-center justify-between w-full">
-        <button
-          onClick={() => {
-            if (sessionId) actions.onApprove(issue.number, sessionId);
-          }}
-          className="inline-flex items-center gap-1.5 bg-accent-blue hover:bg-accent-blue/90 text-white text-sm font-semibold px-5 py-2 rounded-md transition-colors"
-        >
-          Approve Suggestion
-        </button>
+        <div className="flex items-center gap-3">
+          {isSleeping ? (
+            <button
+              onClick={() => actions.onRetry(issue)}
+              className="inline-flex items-center gap-1.5 bg-accent-blue hover:bg-accent-blue/90 text-white text-sm font-semibold px-5 py-2 rounded-md transition-colors"
+            >
+              <RefreshCw className="h-3.5 w-3.5" />
+              Retry with Context
+            </button>
+          ) : (
+            <button
+              onClick={() => {
+                if (sessionId) actions.onApprove(issue.number, sessionId);
+              }}
+              className="inline-flex items-center gap-1.5 bg-accent-blue hover:bg-accent-blue/90 text-white text-sm font-semibold px-5 py-2 rounded-md transition-colors"
+            >
+              Approve Suggestion
+            </button>
+          )}
+        </div>
         <div className="flex items-center gap-4">
           <button
             onClick={() => {
@@ -475,7 +514,7 @@ function BlockedView({
               className="flex items-center gap-1.5 text-accent-blue text-xs"
             >
               <ExternalLink className="h-3 w-3" />
-              Watch live →
+              {isSleeping ? "Open in Devin →" : "Watch live →"}
             </a>
           )}
         </div>
@@ -699,6 +738,7 @@ export default function IssueDetail({
   dispatch,
   mode,
   actions,
+  lastMainCommitDate,
 }: IssueDetailProps) {
   void dispatch; // kept for potential direct dispatch needs
   void mode;
@@ -727,7 +767,7 @@ export default function IssueDetail({
   function renderContent() {
     switch (issue.status) {
       case "scoped":
-        return <ScopedView issue={issue} actions={actions} />;
+        return <ScopedView issue={issue} actions={actions} lastMainCommitDate={lastMainCommitDate} />;
       case "awaiting_reply":
         return <AwaitingReplyView issue={issue} actions={actions} />;
       case "fixing":

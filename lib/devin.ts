@@ -99,8 +99,9 @@ export async function createFixSession(params: {
     action_plan: string[];
     tests_needed: string;
   };
+  previousContext?: string;
 }): Promise<CreateSessionResponse> {
-  const prompt = `You are fixing GitHub issue #${params.issueNumber} from ${params.repo}.
+  let prompt = `You are fixing GitHub issue #${params.issueNumber} from ${params.repo}.
 
 **Issue Title**: ${params.issueTitle}
 **Issue Body**: ${params.issueBody}
@@ -116,6 +117,15 @@ ${params.scopingResult.action_plan.map((s, i) => `${i + 1}. ${s}`).join("\n")}
 
 Please implement the fix following the action plan above. Create a pull request when done.`;
 
+  if (params.previousContext) {
+    prompt += `\n\n**Previous Session Context**:\n${params.previousContext}`;
+  }
+
+  // Use a timestamped tag when retrying to avoid idempotent reuse of sleeping sessions
+  const tag = params.previousContext
+    ? `fix-${params.repo}-${params.issueNumber}-${Date.now()}`
+    : `fix-${params.repo}-${params.issueNumber}`;
+
   const res = await fetch(`${DEVIN_API_BASE}/sessions`, {
     method: "POST",
     headers: headers(),
@@ -123,7 +133,7 @@ Please implement the fix following the action plan above. Create a pull request 
       prompt,
       idempotent: true,
       max_acu_limit: params.acuLimit,
-      tags: [`fix-${params.repo}-${params.issueNumber}`],
+      tags: [tag],
       title: `Fix: ${params.repo}#${params.issueNumber} — ${params.issueTitle}`,
     }),
   });

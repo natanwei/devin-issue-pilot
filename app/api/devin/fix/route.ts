@@ -14,6 +14,7 @@ export async function POST(req: NextRequest) {
       repo,
       acuLimit,
       scopingResult,
+      previousContext,
     } = body;
 
     if (!issueTitle || !issueNumber || !repo || !scopingResult) {
@@ -30,6 +31,7 @@ export async function POST(req: NextRequest) {
       repo,
       acuLimit: acuLimit || 15,
       scopingResult,
+      previousContext: previousContext || undefined,
     });
 
     // Persist to Supabase

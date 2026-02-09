@@ -56,6 +56,7 @@ export default function IssueList({
                   dispatch={dispatch}
                   mode={mode}
                   actions={actions}
+                  lastMainCommitDate={lastMainCommitDate}
                 />
               </div>
             </div>

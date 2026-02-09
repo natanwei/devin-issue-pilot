@@ -212,6 +212,34 @@ describe("Full data flow: blocked session", () => {
 });
 
 // ---------------------------------------------------------------------------
+// Full data flow: sleeping session (suspend_requested)
+// ---------------------------------------------------------------------------
+
+describe("Full data flow: sleeping session", () => {
+  it("maps suspend_requested to blocked with sleeping message", () => {
+    const parsed = parseSessionResponse({
+      ...RAW_BLOCKED,
+      status_enum: "suspend_requested",
+      status: "Session is being suspended",
+    });
+    expect(parsed.statusEnum).toBe("suspend_requested");
+    expect(parsed.isTerminal).toBe(false);
+
+    const result = interpretPollResult(parsed, "fixing", {
+      ...DEFAULT_CONTEXT,
+      sessionStartedAt: "2026-02-08T11:50:00Z",
+    });
+    expect(result.action).toBe("blocked");
+
+    if (result.action === "blocked") {
+      expect(result.patch.status).toBe("blocked");
+      expect(result.patch.blocker?.what_happened).toContain("went to sleep");
+      expect(result.patch.blocker?.suggestion).toContain("Retry");
+    }
+  });
+});
+
+// ---------------------------------------------------------------------------
 // Full data flow: failed fix (stopped)
 // ---------------------------------------------------------------------------
 
