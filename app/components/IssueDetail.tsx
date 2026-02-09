@@ -13,10 +13,12 @@ import {
   Clock,
   XCircle,
   Timer,
+  Search,
 } from "lucide-react";
 
 export interface IssueActions {
   onStartFix: (issue: DashboardIssue) => void;
+  onStartScope: (issue: DashboardIssue) => void;
   onSendMessage: (sessionId: string, message: string) => void;
   onAbort: (issueNumber: number, sessionId: string) => void;
   onRetry: (issue: DashboardIssue) => void;
@@ -522,6 +524,37 @@ function FailedView({
   issue: DashboardIssue;
   actions: IssueActions;
 }) {
+  // Scope failure: no scoping data means the scoping API call itself failed
+  if (!issue.scoping) {
+    return (
+      <>
+        <div
+          className="bg-[#1a1a1a] p-4 flex flex-col gap-2"
+          style={{ borderLeft: "3px solid #ef4444" }}
+        >
+          <span className="text-accent-red text-xs font-semibold uppercase tracking-wider">
+            Scoping Failed
+          </span>
+          <p className="text-text-secondary text-sm leading-relaxed">
+            The scoping session failed to complete. You can try again.
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => actions.onStartScope(issue)}
+            className="inline-flex items-center gap-1.5 bg-accent-blue hover:bg-accent-blue/90 text-white text-sm font-semibold px-4 py-1.5 rounded-md transition-colors"
+          >
+            <Search className="h-3.5 w-3.5" />
+            Re-scope
+          </button>
+          <span className="text-text-muted text-xs">
+            This will start a new scoping session
+          </span>
+        </div>
+      </>
+    );
+  }
+
   const failReason =
     issue.fix_progress?.blockers?.[0] ||
     "Tests failed after modifying the error handler.";
@@ -712,11 +745,22 @@ export default function IssueDetail({
         return <AbortedView issue={issue} />;
       default:
         return (
-          <span className="text-text-muted text-sm italic">
-            {issue.status === "scoping"
-              ? "Devin is analyzing this issue..."
-              : "Waiting to be scoped"}
-          </span>
+          <div className="flex items-center justify-between w-full">
+            <span className="text-text-muted text-sm italic">
+              {issue.status === "scoping"
+                ? "Devin is analyzing this issue..."
+                : "Waiting to be scoped"}
+            </span>
+            {issue.status === "pending" && (
+              <button
+                onClick={() => actions.onStartScope(issue)}
+                className="inline-flex items-center gap-1.5 bg-accent-blue hover:bg-accent-blue/90 text-white text-sm font-semibold px-4 py-1.5 rounded-md transition-colors"
+              >
+                <Search className="h-3.5 w-3.5" />
+                Scope
+              </button>
+            )}
+          </div>
         );
     }
   }

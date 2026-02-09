@@ -9,6 +9,7 @@ interface FilterBarProps {
   onFilterChange: (filter: Partial<FilterState>) => void;
   sortBy: "confidence" | "number" | "status";
   onSortChange: (sortBy: "confidence" | "number" | "status") => void;
+  onScopeAll: () => void;
 }
 
 export default function FilterBar({
@@ -17,6 +18,7 @@ export default function FilterBar({
   onFilterChange,
   sortBy,
   onSortChange,
+  onScopeAll,
 }: FilterBarProps) {
   const greenCount = issues.filter((i) => i.confidence === "green").length;
   const yellowCount = issues.filter((i) => i.confidence === "yellow").length;
@@ -145,26 +147,36 @@ export default function FilterBar({
         </div>
       </div>
 
-      {/* Sort control */}
-      <button
-        onClick={() => {
-          const next =
-            sortBy === "confidence"
-              ? "number"
-              : sortBy === "number"
-                ? "status"
-                : "confidence";
-          onSortChange(next);
-        }}
-        className="text-text-muted text-sm hover:text-text-secondary transition-colors"
-      >
-        Sort:{" "}
-        {sortBy === "confidence"
-          ? "Confidence ↓"
-          : sortBy === "number"
-            ? "Number ↓"
-            : "Status ↓"}
-      </button>
+      <div className="flex items-center gap-4">
+        {issues.some((i) => i.status === "pending") && (
+          <button
+            onClick={onScopeAll}
+            className="text-accent-blue text-sm font-medium hover:text-accent-blue/80 transition-colors"
+          >
+            Scope All ({issues.filter((i) => i.status === "pending").length})
+          </button>
+        )}
+        {/* Sort control */}
+        <button
+          onClick={() => {
+            const next =
+              sortBy === "confidence"
+                ? "number"
+                : sortBy === "number"
+                  ? "status"
+                  : "confidence";
+            onSortChange(next);
+          }}
+          className="text-text-muted text-sm hover:text-text-secondary transition-colors"
+        >
+          Sort:{" "}
+          {sortBy === "confidence"
+            ? "Confidence ↓"
+            : sortBy === "number"
+              ? "Number ↓"
+              : "Status ↓"}
+        </button>
+      </div>
     </div>
   );
 }

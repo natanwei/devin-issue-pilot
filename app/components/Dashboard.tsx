@@ -695,12 +695,13 @@ export default function Dashboard({
   const actions: IssueActions = useMemo(
     () => ({
       onStartFix: handleStartFix,
+      onStartScope: handleStartScope,
       onSendMessage: handleSendMessage,
       onAbort: handleAbort,
       onRetry: handleRetry,
       onApprove: handleApprove,
     }),
-    [handleStartFix, handleSendMessage, handleAbort, handleRetry, handleApprove]
+    [handleStartFix, handleStartScope, handleSendMessage, handleAbort, handleRetry, handleApprove]
   );
 
   return (
@@ -748,6 +749,7 @@ export default function Dashboard({
         onFilterChange={(f) => dispatch({ type: "SET_FILTER", filter: f })}
         sortBy={state.sortBy}
         onSortChange={(s) => dispatch({ type: "SET_SORT", sortBy: s })}
+        onScopeAll={() => dispatch({ type: "TOGGLE_ACU_MODAL" })}
       />
 
       {state.loading ? (
@@ -770,8 +772,7 @@ export default function Dashboard({
 
       <ACUModal
         issueCount={
-          state.issues.filter((i) => i.status === "pending").length ||
-          state.issues.length
+          state.issues.filter((i) => i.status === "pending").length
         }
         open={state.acuModalOpen}
         onClose={() => dispatch({ type: "TOGGLE_ACU_MODAL" })}
