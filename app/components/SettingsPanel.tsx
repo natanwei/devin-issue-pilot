@@ -122,10 +122,11 @@ export default function SettingsPanel({
                 <div className="flex flex-col gap-1">
                   <span className="text-text-secondary font-medium">Create a GitHub token</span>
                   <span className="text-text-muted text-xs">
-                    Select the <code className="text-accent-blue">public_repo</code> scope
+                    <code className="text-accent-blue">public_repo</code> — public repos only<br />
+                    <code className="text-accent-blue">repo</code> — full access including private repos
                   </span>
                   <a
-                    href="https://github.com/settings/tokens/new?scopes=public_repo&description=Devin+Issue+Pilot"
+                    href="https://github.com/settings/tokens/new?scopes=repo&description=Devin+Issue+Pilot"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-accent-blue text-xs hover:underline inline-flex items-center gap-1"
@@ -139,7 +140,7 @@ export default function SettingsPanel({
                 <div className="flex flex-col gap-1">
                   <span className="text-text-secondary font-medium">Install the Devin GitHub App</span>
                   <span className="text-text-muted text-xs">
-                    Go to Integrations &rarr; GitHub &rarr; Add Connection. Devin needs this to create branches and PRs. Without it, scoping works but fixes will fail to create PRs.
+                    Go to Integrations &rarr; GitHub &rarr; Add Connection. Grant access to the repos you want Devin to work on (public or private). Devin needs this to create branches and PRs &mdash; without it, scoping works but fixes will fail.
                   </span>
                   <a
                     href="https://app.devin.ai/settings"
