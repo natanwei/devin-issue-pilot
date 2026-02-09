@@ -24,13 +24,23 @@ export default function FilterBar({
   const yellowCount = issues.filter((i) => i.confidence === "yellow").length;
   const redCount = issues.filter((i) => i.confidence === "red").length;
 
+  const pendingCount = issues.filter((i) => i.status === "pending").length;
   const scopingCount = issues.filter((i) => i.status === "scoping").length;
+  const scopedCount = issues.filter((i) => i.status === "scoped").length;
   const fixingCount = issues.filter(
     (i) => i.status === "fixing" || i.status === "blocked"
+  ).length;
+  const awaitingReplyCount = issues.filter(
+    (i) => i.status === "awaiting_reply"
   ).length;
   const doneCount = issues.filter(
     (i) => i.status === "done" || i.status === "pr_open"
   ).length;
+  const timedOutCount = issues.filter(
+    (i) => i.status === "timed_out"
+  ).length;
+  const failedCount = issues.filter((i) => i.status === "failed").length;
+  const abortedCount = issues.filter((i) => i.status === "aborted").length;
 
   const isAllActive =
     filter.confidence === "all" && filter.status === "all";
@@ -38,16 +48,30 @@ export default function FilterBar({
   function handleConfidence(c: ConfidenceLevel | "all") {
     onFilterChange({
       confidence: c === filter.confidence ? "all" : c,
-      status: "all",
     });
   }
 
   function handleStatus(s: IssueStatus | "all") {
     onFilterChange({
       status: s === filter.status ? "all" : s,
-      confidence: "all",
     });
   }
+
+  const statusButtons: {
+    key: IssueStatus;
+    label: string;
+    count: number;
+  }[] = [
+    { key: "pending", label: "Pending", count: pendingCount },
+    { key: "scoping", label: "Scoping", count: scopingCount },
+    { key: "scoped", label: "Scoped", count: scopedCount },
+    { key: "fixing", label: "Fixing", count: fixingCount },
+    { key: "awaiting_reply", label: "Awaiting Reply", count: awaitingReplyCount },
+    { key: "done", label: "Done", count: doneCount },
+    { key: "timed_out", label: "Timed Out", count: timedOutCount },
+    { key: "failed", label: "Failed", count: failedCount },
+    { key: "aborted", label: "Aborted", count: abortedCount },
+  ];
 
   return (
     <div className="flex items-center justify-between h-11 px-4 md:px-6 bg-page overflow-x-auto">
@@ -115,35 +139,28 @@ export default function FilterBar({
             Status
           </span>
           <button
-            onClick={() => handleStatus("scoping")}
-            className={`text-sm transition-colors ${
-              filter.status === "scoping"
-                ? "text-text-primary"
+            onClick={() => handleStatus("all")}
+            className={`text-sm px-2.5 py-1 rounded-full transition-colors ${
+              filter.status === "all"
+                ? "bg-elevated text-text-primary"
                 : "text-text-muted hover:text-text-secondary"
             }`}
           >
-            Scoping{scopingCount > 0 && ` (${scopingCount})`}
+            All
           </button>
-          <button
-            onClick={() => handleStatus("fixing")}
-            className={`text-sm transition-colors ${
-              filter.status === "fixing"
-                ? "text-text-primary"
-                : "text-text-muted hover:text-text-secondary"
-            }`}
-          >
-            Fixing{fixingCount > 0 && ` (${fixingCount})`}
-          </button>
-          <button
-            onClick={() => handleStatus("done")}
-            className={`text-sm transition-colors ${
-              filter.status === "done"
-                ? "text-text-primary"
-                : "text-text-muted hover:text-text-secondary"
-            }`}
-          >
-            Done{doneCount > 0 && ` (${doneCount})`}
-          </button>
+          {statusButtons.map(({ key, label, count }) => (
+            <button
+              key={key}
+              onClick={() => handleStatus(key)}
+              className={`text-sm transition-colors ${
+                filter.status === key
+                  ? "text-text-primary"
+                  : "text-text-muted hover:text-text-secondary"
+              }`}
+            >
+              {label}{count > 0 && ` (${count})`}
+            </button>
+          ))}
         </div>
       </div>
 
