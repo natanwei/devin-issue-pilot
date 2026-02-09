@@ -84,15 +84,14 @@ export default function TopBar({
         <span className="text-[#444444] hidden sm:inline">·</span>
         <button
           onClick={onRefresh}
-          className="text-text-muted hover:text-text-secondary transition-colors hidden sm:block"
+          className="text-text-muted hover:text-text-secondary transition-colors"
           title="Refresh issues"
         >
           <RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} />
         </button>
-        <span className="text-[#444444] hidden sm:inline">·</span>
         <button
           onClick={onOpenSettings}
-          className="text-text-muted hover:text-text-secondary transition-colors relative hidden sm:block"
+          className="text-text-muted hover:text-text-secondary transition-colors relative"
           title="API Key Settings"
         >
           <Settings className="h-3.5 w-3.5" />
@@ -100,7 +99,6 @@ export default function TopBar({
             <span className="absolute -top-0.5 -right-0.5 h-1.5 w-1.5 rounded-full bg-accent-green" />
           )}
         </button>
-        <span className="text-[#444444] hidden sm:inline">·</span>
         <div className="flex items-center bg-elevated rounded-full p-0.5 gap-0.5 flex-shrink-0">
           <button
             onClick={mode === "live" ? onToggleMode : undefined}
