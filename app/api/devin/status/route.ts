@@ -55,19 +55,23 @@ export async function GET(req: NextRequest) {
 
     const terminal = isTerminal(session.status_enum);
 
-    // Persist results to Supabase when terminal or when we have output
+    // Persist results to Supabase when terminal, structured output found, or blocked
     const issueNum = issueNumber ? Number(issueNumber) : NaN;
-    if ((terminal || structuredOutput) && repo && Number.isInteger(issueNum) && issueNum > 0) {
+    const shouldPersist = terminal || structuredOutput || session.status_enum === "blocked";
+    if (shouldPersist && repo && Number.isInteger(issueNum) && issueNum > 0) {
       const parsed = structuredOutput ? parseStructuredOutput(structuredOutput) : null;
       await upsertIssueSession({
         repo,
         issue_number: issueNum,
-        status: session.pull_request ? "done" : parsed ? "scoped" : session.status_enum,
+        status: session.pull_request ? "done" : parsed ? "scoped" : session.status_enum === "blocked" ? "blocked" : session.status_enum,
         confidence: parsed?.confidence ?? null,
         scoping: parsed as Record<string, unknown> | null,
         scoped_at: parsed ? new Date().toISOString() : null,
         pr: session.pull_request ? { url: session.pull_request.url } : null,
         completed_at: session.pull_request ? new Date().toISOString() : null,
+        ...(session.status_enum === "blocked" && blockerMessage
+          ? { blocker: { what_happened: blockerMessage, suggestion: "" } }
+          : {}),
       }).catch(() => {});
     }
 
