@@ -231,6 +231,11 @@ export function interpretPollResult(
     return scopingTerminal(data, now);
   }
 
+  // 4b. PR exists during fixing → treat as done regardless of status_enum
+  if (sessionType === "fixing" && data.pullRequest?.url) {
+    return fixingTerminal(data, context.issueNumber, now);
+  }
+
   // 5. Blocked
   if (data.statusEnum === "blocked") {
     const whatHappened = (data.blockerMessage || data.status || "Devin needs input")
