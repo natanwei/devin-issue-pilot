@@ -196,6 +196,7 @@ export default function Dashboard({
   );
 
   const pollingRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const scopingInProgressRef = useRef(false);
   const stateRef = useRef(state);
   stateRef.current = state;
 
@@ -340,7 +341,10 @@ export default function Dashboard({
 
   // --- Auto-scoping pipeline ---
   const handleStartScope = useCallback(async (issue: DashboardIssue) => {
+    if (scopingInProgressRef.current) return;
     if (stateRef.current.mode !== "live" || !stateRef.current.repo) return;
+
+    scopingInProgressRef.current = true;
 
     dispatch({
       type: "UPDATE_ISSUE",
@@ -384,6 +388,7 @@ export default function Dashboard({
         sessionType: "scoping",
       });
     } catch (err) {
+      scopingInProgressRef.current = false;
       dispatch({
         type: "UPDATE_ISSUE",
         issueNumber: issue.number,
@@ -395,6 +400,13 @@ export default function Dashboard({
       });
     }
   }, []);
+
+  // Reset scoping guard when session clears (so auto-scope picks up next issue)
+  useEffect(() => {
+    if (!state.activeSession) {
+      scopingInProgressRef.current = false;
+    }
+  }, [state.activeSession]);
 
   // Auto-scope: pick up next pending issue when no session is active
   useEffect(() => {
