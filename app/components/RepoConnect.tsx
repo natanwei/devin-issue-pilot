@@ -1,7 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { Bot } from "lucide-react";
+import { Bot, Settings } from "lucide-react";
+import { useApiKeys } from "@/lib/api-keys";
+import SettingsPanel from "./SettingsPanel";
 
 interface RepoConnectProps {
   onConnect: (repo: { owner: string; name: string }, mode: "demo" | "live") => void;
@@ -10,6 +12,8 @@ interface RepoConnectProps {
 export default function RepoConnect({ onConnect }: RepoConnectProps) {
   const [input, setInput] = useState("");
   const [error, setError] = useState("");
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const { keys, setKeys, clearKeys } = useApiKeys();
 
   function parseRepoInput(value: string): { owner: string; name: string } | null {
     // Handle full GitHub URLs
@@ -48,7 +52,16 @@ export default function RepoConnect({ onConnect }: RepoConnectProps) {
   return (
     <div className="min-h-screen bg-page flex flex-col items-center justify-center p-4">
       <div className="flex flex-col items-center gap-6 w-full max-w-md">
-        <div className="bg-dp-card rounded-lg p-12 w-full flex flex-col items-center gap-6">
+        <div className="bg-dp-card rounded-lg p-12 w-full flex flex-col items-center gap-6 relative">
+          {/* Settings gear */}
+          <button
+            onClick={() => setSettingsOpen(true)}
+            className="absolute top-4 right-4 text-text-muted hover:text-text-secondary transition-colors"
+            title="API Keys"
+          >
+            <Settings className="h-5 w-5" />
+          </button>
+
           {/* Logo + Title */}
           <div className="flex flex-col items-center gap-2">
             <div className="text-accent-purple">
@@ -87,7 +100,12 @@ export default function RepoConnect({ onConnect }: RepoConnectProps) {
 
           <p className="text-text-muted text-xs text-center">
             Without custom API keys, only public repos can be scoped.{" "}
-            Configure keys in Settings after connecting.
+            <button
+              onClick={() => setSettingsOpen(true)}
+              className="text-accent-blue hover:underline"
+            >
+              Configure keys
+            </button>
           </p>
 
           {/* Demo link */}
@@ -105,6 +123,14 @@ export default function RepoConnect({ onConnect }: RepoConnectProps) {
         {/* Footer */}
         <p className="text-text-muted text-xs">Powered by Devin API v1</p>
       </div>
+
+      <SettingsPanel
+        open={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+        keys={keys}
+        onSave={setKeys}
+        onClear={clearKeys}
+      />
     </div>
   );
 }
