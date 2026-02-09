@@ -329,11 +329,12 @@ export default function Dashboard({
 
       // Resume polling for any in-progress session
       const activeIssue = issues.find(
-        (i) => (i.status === "scoping" || i.status === "fixing") &&
+        (i) => (i.status === "scoping" || i.status === "fixing" || i.status === "blocked") &&
                (i.scoping_session || i.fix_session)
       );
       if (activeIssue) {
-        const session = activeIssue.status === "scoping"
+        const sessionType = activeIssue.status === "scoping" ? "scoping" as const : "fixing" as const;
+        const session = sessionType === "scoping"
           ? activeIssue.scoping_session
           : activeIssue.fix_session;
         if (session) {
@@ -342,7 +343,7 @@ export default function Dashboard({
             sessionId: session.session_id,
             sessionUrl: session.session_url,
             issueNumber: activeIssue.number,
-            sessionType: activeIssue.status as "scoping" | "fixing",
+            sessionType,
           });
         }
       }
