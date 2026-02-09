@@ -21,7 +21,7 @@ import {
 export interface IssueActions {
   onStartFix: (issue: DashboardIssue) => void;
   onStartScope: (issue: DashboardIssue) => void;
-  onSendMessage: (sessionId: string, message: string) => void;
+  onSendMessage: (sessionId: string, message: string) => Promise<void>;
   onAbort: (issueNumber: number, sessionId: string) => void;
   onRetry: (issue: DashboardIssue) => void;
   onApprove: (issueNumber: number, sessionId: string) => void;
@@ -262,8 +262,9 @@ function ScopedView({
       {(isYellow || isRed) && (
         <MessageInput
           color={isRed ? "red" : "amber"}
-          onSend={(msg) => {
-            if (sessionId) actions.onSendMessage(sessionId, msg);
+          onSend={async (msg) => {
+            if (!sessionId) throw new Error("No active session");
+            await actions.onSendMessage(sessionId, msg);
           }}
         />
       )}
@@ -358,8 +359,9 @@ function AwaitingReplyView({
 
       <MessageInput
         color="amber"
-        onSend={(msg) => {
-          if (sessionId) actions.onSendMessage(sessionId, msg);
+        onSend={async (msg) => {
+          if (!sessionId) throw new Error("No active session");
+          await actions.onSendMessage(sessionId, msg);
         }}
       />
     </>
@@ -496,8 +498,9 @@ function BlockedView({
         color="amber"
         placeholder="Give Devin instructions..."
         helperText="This will be sent to Devin's session"
-        onSend={(msg) => {
-          if (sessionId) actions.onSendMessage(sessionId, msg);
+        onSend={async (msg) => {
+          if (!sessionId) throw new Error("No active session");
+          await actions.onSendMessage(sessionId, msg);
         }}
       />
 

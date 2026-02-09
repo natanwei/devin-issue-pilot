@@ -1,12 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { Send } from "lucide-react";
+import { Send, Check, Loader2 } from "lucide-react";
 
 interface MessageInputProps {
   color: "amber" | "red" | "blue" | "default";
   placeholder?: string;
-  onSend: (message: string) => void;
+  onSend: (message: string) => void | Promise<void>;
   helperText?: string;
 }
 
@@ -31,21 +31,34 @@ export default function MessageInput({
   helperText = "This will be sent to Devin\u2019s session",
 }: MessageInputProps) {
   const [value, setValue] = useState("");
+  const [sending, setSending] = useState(false);
+  const [sent, setSent] = useState(false);
 
-  function handleSend() {
-    if (!value.trim()) return;
-    onSend(value.trim());
-    setValue("");
+  async function handleSend() {
+    if (!value.trim() || sending) return;
+    const msg = value.trim();
+    setSending(true);
+    try {
+      await onSend(msg);
+      setValue("");
+      setSent(true);
+      setTimeout(() => setSent(false), 1500);
+    } catch {
+      // Keep value so user can retry — error shown via Dashboard banner
+    } finally {
+      setSending(false);
+    }
   }
 
   function handleKeyDown(e: React.KeyboardEvent) {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
-      handleSend();
+      void handleSend();
     }
   }
 
   const btnColors = buttonColorMap[color];
+  const disabled = (!value.trim() && !sent) || sending;
 
   return (
     <div className="flex flex-col gap-2">
@@ -55,19 +68,34 @@ export default function MessageInput({
         onKeyDown={handleKeyDown}
         placeholder={placeholder}
         rows={2}
-        className={`w-full bg-dp-card border border-border-subtle rounded-lg px-3 py-2.5 text-sm text-text-primary placeholder:text-text-muted resize-none outline-none transition-colors ${focusColorMap[color]}`}
+        disabled={sending}
+        className={`w-full bg-dp-card border border-border-subtle rounded-lg px-3 py-2.5 text-sm text-text-primary placeholder:text-text-muted resize-none outline-none transition-colors disabled:opacity-50 ${focusColorMap[color]}`}
       />
       <div className="flex items-center justify-between">
         <span className="text-text-muted text-[11px]">{helperText}</span>
         <button
-          onClick={handleSend}
-          disabled={!value.trim()}
+          onClick={() => void handleSend()}
+          disabled={disabled}
           className={`flex items-center gap-1.5 px-3 py-1 rounded-md border text-[13px] font-medium transition-opacity ${btnColors.text} ${btnColors.border} ${
-            !value.trim() ? "opacity-40 cursor-not-allowed" : "hover:opacity-80"
+            disabled ? "opacity-40 cursor-not-allowed" : "hover:opacity-80"
           }`}
         >
-          <Send className="h-3.5 w-3.5" />
-          Send
+          {sending ? (
+            <>
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              Sending...
+            </>
+          ) : sent ? (
+            <>
+              <Check className="h-3.5 w-3.5" />
+              Sent
+            </>
+          ) : (
+            <>
+              <Send className="h-3.5 w-3.5" />
+              Send
+            </>
+          )}
         </button>
       </div>
     </div>

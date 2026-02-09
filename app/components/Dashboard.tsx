@@ -711,32 +711,23 @@ export default function Dashboard({
     async (sessionId: string, message: string) => {
       if (state.mode === "demo") { showDemoToast(); return; }
 
-      try {
-        const res = await fetch("/api/devin/message", {
-          method: "POST",
-          headers: { "Content-Type": "application/json", ...apiKeyHeaders(keysRef.current) },
-          body: JSON.stringify({ sessionId, message }),
-        });
-        if (!res.ok) {
-          const data = await res.json().catch(() => ({}));
-          throw new Error(data.error || `Message failed (${res.status})`);
-        }
-      } catch (err) {
-        // Find the issue this message was for, save the pending message
-        const issue = state.issues.find(
-          (i) => i.fix_session?.session_id === sessionId || i.scoping_session?.session_id === sessionId
-        );
-        if (issue) {
-          pendingMessagesRef.current.set(issue.number, message);
-        }
-        dispatch({
-          type: "SET_ERROR",
-          error:
-            err instanceof Error ? err.message : "Failed to send message",
-        });
+      const res = await fetch("/api/devin/message", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...apiKeyHeaders(keysRef.current) },
+        body: JSON.stringify({ sessionId, message }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        const errorMsg = data.error || `Message failed (${res.status})`;
+        dispatch({ type: "SET_ERROR", error: errorMsg });
+        throw new Error(errorMsg);
       }
+
+      // Trigger immediate re-poll so blocker updates show quickly
+      if (pollingRef.current) clearTimeout(pollingRef.current);
+      scheduleNextPoll("fixing");
     },
-    [state.mode, state.issues, showDemoToast]
+    [state.mode, showDemoToast, scheduleNextPoll]
   );
 
   const handleAbort = useCallback(
