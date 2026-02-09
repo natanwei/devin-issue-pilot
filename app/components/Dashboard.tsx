@@ -5,7 +5,6 @@ import {
   DashboardState,
   DashboardAction,
   DashboardIssue,
-  FilterState,
   IssueStatus,
   ConfidenceLevel,
   ScopingResult,
@@ -17,12 +16,12 @@ import {
   FileInfo,
 } from "@/lib/types";
 import {
-  CONFIDENCE_SORT_ORDER,
   POLLING_INTERVALS,
   TIMEOUT_LIMITS,
   ACU_LIMITS,
   ISSUE_REFRESH_INTERVAL,
 } from "@/lib/constants";
+import { filterAndSortIssues } from "@/lib/filters";
 import { interpretPollResult } from "@/lib/parsers";
 import { useApiKeys, apiKeyHeaders } from "@/lib/api-keys";
 import { getDemoIssues } from "@/lib/demo-data";
@@ -145,53 +144,6 @@ function dashboardReducer(
     default:
       return state;
   }
-}
-
-function filterAndSortIssues(
-  issues: DashboardIssue[],
-  filter: FilterState,
-  sortBy: DashboardState["sortBy"]
-): DashboardIssue[] {
-  let filtered = issues;
-
-  // Filter by confidence
-  if (filter.confidence !== "all") {
-    filtered = filtered.filter((i) => i.confidence === filter.confidence);
-  }
-
-  // Filter by status (group related statuses)
-  if (filter.status !== "all") {
-    if (filter.status === "fixing") {
-      filtered = filtered.filter(
-        (i) => i.status === "fixing" || i.status === "blocked"
-      );
-    } else if (filter.status === "done") {
-      filtered = filtered.filter(
-        (i) => i.status === "done" || i.status === "pr_open"
-      );
-    } else {
-      filtered = filtered.filter((i) => i.status === filter.status);
-    }
-  }
-
-  // Sort
-  return [...filtered].sort((a, b) => {
-    if (sortBy === "confidence") {
-      const aOrder = a.confidence
-        ? CONFIDENCE_SORT_ORDER[a.confidence]
-        : 3;
-      const bOrder = b.confidence
-        ? CONFIDENCE_SORT_ORDER[b.confidence]
-        : 3;
-      if (aOrder !== bOrder) return aOrder - bOrder;
-      return a.number - b.number;
-    }
-    if (sortBy === "number") {
-      return a.number - b.number;
-    }
-    // sortBy === "status"
-    return a.status.localeCompare(b.status);
-  });
 }
 
 function getPollingInterval(status: string): number {
