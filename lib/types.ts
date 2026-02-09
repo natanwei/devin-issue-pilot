@@ -86,7 +86,7 @@ export interface PRInfo {
   number: number;
   title: string;
   branch: string;
-  files_changed: PRFileChange[];
+  files_changed?: PRFileChange[];
 }
 
 export interface SessionInfo {

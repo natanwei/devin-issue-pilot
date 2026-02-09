@@ -325,6 +325,43 @@ export default function Dashboard({
         // Supabase hydration failure is non-critical
       }
 
+      // Re-enrich any issues with incomplete PR data (url but no files_changed)
+      const incompletePRIssues = issues.filter(
+        (i) => i.pr?.url && (!i.pr.files_changed || i.pr.files_changed.length === 0)
+      );
+      for (const issue of incompletePRIssues) {
+        const prMatch = issue.pr!.url.match(/github\.com\/([^/]+)\/([^/]+)\/pull\/(\d+)/);
+        if (!prMatch) continue;
+        try {
+          const prRes = await fetch(
+            `/api/github/pr-details?owner=${encodeURIComponent(prMatch[1])}&repo=${encodeURIComponent(prMatch[2])}&pr=${prMatch[3]}`,
+            { headers: apiKeyHeaders(keysRef.current) },
+          );
+          if (prRes.ok) {
+            const prData = await prRes.json();
+            issue.pr = {
+              ...issue.pr!,
+              number: issue.pr!.number || parseInt(prMatch[3], 10),
+              title: prData.title || issue.pr!.title || `PR #${prMatch[3]}`,
+              branch: prData.branch || issue.pr!.branch || "",
+              files_changed: prData.files || [],
+            };
+            // Persist enriched PR back to Supabase
+            fetch("/api/supabase/sessions", {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                repo: `${owner}/${name}`,
+                issue_number: issue.number,
+                pr: issue.pr,
+              }),
+            }).catch(() => {});
+          }
+        } catch {
+          // PR re-enrichment failure is non-critical
+        }
+      }
+
       dispatch({ type: "SET_ISSUES", issues });
 
       // Resume polling for any in-progress session
@@ -612,6 +649,18 @@ export default function Dashboard({
           }
           dispatch({ type: "UPDATE_ISSUE", issueNumber, patch: finalPatch });
           dispatch({ type: "CLEAR_SESSION" });
+          // Persist enriched PR data to Supabase
+          if (finalPatch.pr && current.repo) {
+            fetch("/api/supabase/sessions", {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                repo: `${current.repo.owner}/${current.repo.name}`,
+                issue_number: issueNumber,
+                pr: finalPatch.pr,
+              }),
+            }).catch(() => {});
+          }
           break;
         }
 

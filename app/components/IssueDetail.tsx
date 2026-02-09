@@ -563,14 +563,14 @@ function DoneView({ issue }: { issue: DashboardIssue }) {
       {issue.pr && <PRCard pr={issue.pr} />}
 
       {/* Diff snippet */}
-      {issue.pr && issue.pr.files_changed.some((f) => f.diff_lines && f.diff_lines.length > 0) && (
-        <DiffSnippet files={issue.pr.files_changed} />
+      {issue.pr?.files_changed?.some((f) => f.diff_lines && f.diff_lines.length > 0) && (
+        <DiffSnippet files={issue.pr.files_changed!} />
       )}
 
       {/* Two columns: Files Changed + Steps Completed */}
       {issue.pr && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-10 w-full">
-          <FilesChanged files={issue.pr.files_changed} />
+          <FilesChanged files={issue.pr.files_changed ?? []} />
           <StepsCompleted steps={completedSteps} />
         </div>
       )}

@@ -49,7 +49,7 @@ export default function PRCard({ pr }: PRCardProps) {
 }
 
 interface FilesChangedProps {
-  files: PRInfo["files_changed"];
+  files: NonNullable<PRInfo["files_changed"]>;
 }
 
 export function FilesChanged({ files }: FilesChangedProps) {
