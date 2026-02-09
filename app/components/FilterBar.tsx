@@ -50,8 +50,8 @@ export default function FilterBar({
   }
 
   return (
-    <div className="flex items-center justify-between h-11 px-4 md:px-6 bg-page overflow-x-auto">
-      <div className="flex items-center gap-4 md:gap-6 min-w-0 flex-shrink-0">
+    <div className="flex items-center justify-between h-11 px-3 sm:px-4 md:px-6 bg-page overflow-x-auto">
+      <div className="flex items-center gap-2 sm:gap-4 md:gap-6 min-w-0">
         {/* All filter */}
         <button
           onClick={() => onFilterChange({ confidence: "all", status: "all" })}
@@ -65,8 +65,8 @@ export default function FilterBar({
         </button>
 
         {/* Confidence group */}
-        <div className="flex items-center gap-4">
-          <span className="text-[11px] text-text-muted uppercase tracking-wider font-semibold">
+        <div className="flex items-center gap-2 sm:gap-4">
+          <span className="text-[11px] text-text-muted uppercase tracking-wider font-semibold hidden sm:inline">
             Confidence
           </span>
           {(
@@ -110,8 +110,8 @@ export default function FilterBar({
         <div className="w-px h-5 bg-border-subtle" />
 
         {/* Status group */}
-        <div className="flex items-center gap-4">
-          <span className="text-[11px] text-text-muted uppercase tracking-wider font-semibold">
+        <div className="flex items-center gap-2 sm:gap-4">
+          <span className="text-[11px] text-text-muted uppercase tracking-wider font-semibold hidden sm:inline">
             Status
           </span>
           <button

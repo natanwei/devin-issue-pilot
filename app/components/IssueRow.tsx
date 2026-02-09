@@ -40,7 +40,7 @@ export default function IssueRow({ issue, isExpanded, onToggle, lastMainCommitDa
   return (
     <button
       onClick={onToggle}
-      className="flex items-center gap-3 w-full h-16 px-6 hover:bg-dp-card/80 transition-colors text-left group"
+      className="flex items-center gap-2 sm:gap-3 w-full h-16 px-3 sm:px-6 hover:bg-dp-card/80 transition-colors text-left group"
       style={{
         borderLeft: `3px solid ${borderColor}`,
       }}
@@ -59,7 +59,7 @@ export default function IssueRow({ issue, isExpanded, onToggle, lastMainCommitDa
       </span>
 
       {/* Labels */}
-      <div className="flex items-center gap-1.5 flex-shrink-0">
+      <div className="hidden sm:flex items-center gap-1.5 flex-shrink-0">
         {issue.labels.slice(0, 2).map((label) => (
           <span
             key={label.name}

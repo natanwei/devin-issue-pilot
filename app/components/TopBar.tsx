@@ -37,23 +37,23 @@ export default function TopBar({
   const redCount = issues.filter((i) => i.confidence === "red").length;
 
   return (
-    <div className="flex items-center justify-between h-14 px-4 md:px-6 bg-dp-card border-b border-border-subtle sticky top-0 z-30">
+    <div className="flex items-center justify-between h-14 px-3 sm:px-4 md:px-6 bg-dp-card border-b border-border-subtle sticky top-0 z-30">
       {/* Left section */}
-      <div className="flex items-center gap-4">
-        <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 sm:gap-4 min-w-0">
+        <div className="flex items-center gap-2 flex-shrink-0">
           <Bot className="h-5 w-5 text-accent-purple" />
-          <span className="text-text-secondary text-sm font-semibold">
+          <span className="text-text-secondary text-sm font-semibold hidden sm:inline">
             Devin Issue Pilot
           </span>
         </div>
-        <span className="text-text-muted text-sm">·</span>
-        <div className="flex items-center gap-2 bg-elevated rounded-full px-2.5 py-1 h-7">
-          <span className="text-text-secondary text-xs font-mono">
+        <span className="text-text-muted text-sm hidden sm:inline">·</span>
+        <div className="flex items-center gap-2 bg-elevated rounded-full px-2.5 py-1 h-7 min-w-0">
+          <span className="text-text-secondary text-xs font-mono truncate">
             {repo.owner}/{repo.name}
           </span>
           <button
             onClick={onDisconnect}
-            className="text-text-muted hover:text-text-secondary transition-colors"
+            className="text-text-muted hover:text-text-secondary transition-colors flex-shrink-0"
           >
             <X className="h-3 w-3" />
           </button>
@@ -61,7 +61,7 @@ export default function TopBar({
       </div>
 
       {/* Right section */}
-      <div className="flex items-center gap-4 text-[13px]">
+      <div className="flex items-center gap-2 sm:gap-4 text-[13px] flex-shrink-0">
         <span className="text-text-secondary hidden sm:inline">
           {totalIssues} issues
         </span>
@@ -81,18 +81,18 @@ export default function TopBar({
           <span className="text-accent-amber">{yellowCount}</span>
           <span className="text-accent-red">{redCount}</span>
         </div>
-        <span className="text-[#444444]">·</span>
+        <span className="text-[#444444] hidden sm:inline">·</span>
         <button
           onClick={onRefresh}
-          className="text-text-muted hover:text-text-secondary transition-colors"
+          className="text-text-muted hover:text-text-secondary transition-colors hidden sm:block"
           title="Refresh issues"
         >
           <RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} />
         </button>
-        <span className="text-[#444444]">·</span>
+        <span className="text-[#444444] hidden sm:inline">·</span>
         <button
           onClick={onOpenSettings}
-          className="text-text-muted hover:text-text-secondary transition-colors relative"
+          className="text-text-muted hover:text-text-secondary transition-colors relative hidden sm:block"
           title="API Key Settings"
         >
           <Settings className="h-3.5 w-3.5" />
@@ -100,8 +100,8 @@ export default function TopBar({
             <span className="absolute -top-0.5 -right-0.5 h-1.5 w-1.5 rounded-full bg-accent-green" />
           )}
         </button>
-        <span className="text-[#444444]">·</span>
-        <div className="flex items-center bg-elevated rounded-full p-0.5 gap-0.5">
+        <span className="text-[#444444] hidden sm:inline">·</span>
+        <div className="flex items-center bg-elevated rounded-full p-0.5 gap-0.5 flex-shrink-0">
           <button
             onClick={mode === "live" ? onToggleMode : undefined}
             className={`px-2 py-0.5 rounded-full text-xs font-medium transition-colors ${

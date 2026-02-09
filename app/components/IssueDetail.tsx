@@ -91,7 +91,7 @@ function DetailGrid({ issue }: { issue: DashboardIssue }) {
                 key={f.path}
                 className="flex items-center gap-2 text-sm"
               >
-                <span className="text-text-secondary font-mono text-[13px]">
+                <span className="text-text-secondary font-mono text-[13px] break-all">
                   {f.path}
                 </span>
                 {f.lines && (
@@ -173,7 +173,7 @@ function ConfidenceHeader({ issue }: { issue: DashboardIssue }) {
   }
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex items-center gap-2 flex-wrap">
       <span
         className="h-2.5 w-2.5 rounded-full"
         style={{ backgroundColor: config.color }}
@@ -234,7 +234,7 @@ function ScopedView({
     <>
       {isStale && (
         <div
-          className="flex items-center justify-between bg-[#1a1a1a] px-4 py-3 rounded-md"
+          className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 bg-[#1a1a1a] px-4 py-3 rounded-md"
           style={{ borderLeft: "3px solid #f59e0b" }}
         >
           <span className="text-accent-amber text-sm">
@@ -242,7 +242,7 @@ function ScopedView({
           </span>
           <button
             onClick={() => actions.onStartScope(issue)}
-            className="inline-flex items-center gap-1.5 text-accent-blue text-sm font-medium hover:opacity-80 transition-opacity"
+            className="inline-flex items-center gap-1.5 text-accent-blue text-sm font-medium hover:opacity-80 transition-opacity whitespace-nowrap"
           >
             <Search className="h-3.5 w-3.5" />
             Re-scope
@@ -837,7 +837,7 @@ export default function IssueDetail({
 
   return (
     <div
-      className="bg-elevated p-5 flex flex-col gap-4"
+      className="bg-elevated p-3 sm:p-5 flex flex-col gap-4"
       style={{
         borderLeft: `3px solid ${borderColor}`,
         borderTop: "1px solid #262626",
