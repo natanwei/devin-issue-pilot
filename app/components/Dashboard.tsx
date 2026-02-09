@@ -320,6 +320,48 @@ export default function Dashboard({
               };
             }
           }
+
+          // Fetch closed issues that exist in Supabase but not in GitHub (open) list
+          const matchedNumbers = new Set(issues.map((i) => i.number));
+          const missingSessions = sessions.filter(
+            (s) => !matchedNumbers.has(s.issue_number)
+          );
+          for (const s of missingSessions) {
+            try {
+              const issueRes = await fetch(
+                `/api/github/issue?owner=${encodeURIComponent(owner)}&repo=${encodeURIComponent(name)}&number=${s.issue_number}`,
+                { headers: apiKeyHeaders(keysRef.current) },
+              );
+              if (issueRes.ok) {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                const r: any = await issueRes.json();
+                issues.push({
+                  number: r.number,
+                  title: r.title,
+                  body: r.body || "",
+                  labels: r.labels,
+                  created_at: r.created_at,
+                  updated_at: r.updated_at,
+                  github_url: r.html_url,
+                  status: (s.status as IssueStatus) || "pending",
+                  confidence: (s.confidence as ConfidenceLevel) || null,
+                  scoping: (s.scoping as ScopingResult) || null,
+                  scoping_session: (s.scoping_session as SessionInfo) || null,
+                  fix_session: (s.fix_session as SessionInfo) || null,
+                  fix_progress: (s.fix_progress as FixProgress) || null,
+                  blocker: (s.blocker as BlockerInfo) || null,
+                  pr: (s.pr as PRInfo) || null,
+                  steps: (s.steps as StepItem[]) || [],
+                  files_info: (s.files_info as FileInfo[]) || [],
+                  scoped_at: s.scoped_at || null,
+                  fix_started_at: s.fix_started_at || null,
+                  completed_at: s.completed_at || null,
+                });
+              }
+            } catch {
+              // Individual closed-issue fetch failure is non-critical
+            }
+          }
         }
       } catch {
         // Supabase hydration failure is non-critical

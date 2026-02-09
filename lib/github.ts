@@ -52,6 +52,31 @@ export async function listIssues(
     }));
 }
 
+export async function getIssue(
+  owner: string,
+  repo: string,
+  number: number,
+  githubToken?: string,
+): Promise<GitHubIssueRaw> {
+  const octokit = getOctokit(githubToken);
+  const { data: issue } = await octokit.issues.get({ owner, repo, issue_number: number });
+  return {
+    number: issue.number,
+    title: issue.title,
+    body: issue.body ?? null,
+    labels: issue.labels
+      .map((l) =>
+        typeof l === "string"
+          ? { name: l, color: "888888" }
+          : { name: l.name || "", color: l.color || "888888" }
+      )
+      .filter((l) => l.name),
+    created_at: issue.created_at,
+    updated_at: issue.updated_at,
+    html_url: issue.html_url,
+  };
+}
+
 export async function getLatestCommit(
   owner: string,
   repo: string,
