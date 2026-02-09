@@ -40,20 +40,20 @@ export async function POST(req: NextRequest) {
       },
     }).catch(() => {});
 
-    // Webhook to n8n for async polling + Claude extraction (must await on Vercel)
-    if (process.env.N8N_WEBHOOK_URL) {
-      await fetch(process.env.N8N_WEBHOOK_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          sessionId: result.session_id,
-          issueNumber,
-          repo,
-          callbackUrl: `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/api/n8n/callback`,
-          secret: process.env.N8N_CALLBACK_SECRET || "",
-        }),
-      }).catch(() => {});
-    }
+    // --- n8n disabled (uncomment to re-enable async polling + Claude extraction) ---
+    // if (process.env.N8N_WEBHOOK_URL) {
+    //   await fetch(process.env.N8N_WEBHOOK_URL, {
+    //     method: "POST",
+    //     headers: { "Content-Type": "application/json" },
+    //     body: JSON.stringify({
+    //       sessionId: result.session_id,
+    //       issueNumber,
+    //       repo,
+    //       callbackUrl: `${process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/api/n8n/callback`,
+    //       secret: process.env.N8N_CALLBACK_SECRET || "",
+    //     }),
+    //   }).catch(() => {});
+    // }
 
     return NextResponse.json({
       sessionId: result.session_id,
