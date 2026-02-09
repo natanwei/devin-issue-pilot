@@ -49,7 +49,7 @@ Please analyze this issue and determine:
 6. What are the risks?
 7. What open questions do you have?
 
-You MUST populate the structured_output field with your analysis. Update the structured output immediately with your findings. Do not put the JSON in your message — it must go in the structured_output field.
+You MUST include your analysis as a JSON code block in your message. Wrap it in \`\`\`json ... \`\`\` fences so the dashboard can parse it.
 
 Respond with structured JSON:
 {
@@ -64,7 +64,7 @@ Respond with structured JSON:
   "open_questions": ["..."]
 }
 
-IMPORTANT: Update your structured output with this exact JSON schema. The structured_output field is how the dashboard reads your analysis. If you put it in a message instead, the dashboard cannot parse it.`;
+IMPORTANT: Your JSON analysis MUST appear in your message wrapped in \`\`\`json fences. This is how the dashboard reads your analysis.`;
 
   const res = await fetch(`${DEVIN_API_BASE}/sessions`, {
     method: "POST",
