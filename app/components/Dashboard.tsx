@@ -321,7 +321,12 @@ export default function Dashboard({
       }
 
       if (!stateRef.current.scopingApproved) {
-        dispatch({ type: "TOGGLE_ACU_MODAL" });
+        const hasPending = issues.some((i) => i.status === "pending");
+        if (hasPending) {
+          dispatch({ type: "TOGGLE_ACU_MODAL" });
+        } else {
+          dispatch({ type: "APPROVE_SCOPING" });
+        }
       }
     } catch (err) {
       dispatch({
@@ -715,7 +720,12 @@ export default function Dashboard({
         loading={state.loading}
         onToggleMode={() => {
           if (state.mode === "demo") {
-            dispatch({ type: "TOGGLE_ACU_MODAL" });
+            const hasPending = state.issues.some((i) => i.status === "pending");
+            if (hasPending) {
+              dispatch({ type: "TOGGLE_ACU_MODAL" });
+            } else {
+              dispatch({ type: "SET_MODE", mode: "live" });
+            }
           } else {
             dispatch({ type: "SET_MODE", mode: "demo" });
           }
