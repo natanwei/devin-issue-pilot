@@ -24,11 +24,13 @@ import {
   ISSUE_REFRESH_INTERVAL,
 } from "@/lib/constants";
 import { interpretPollResult } from "@/lib/parsers";
+import { useApiKeys, apiKeyHeaders } from "@/lib/api-keys";
 import { getDemoIssues } from "@/lib/demo-data";
 import TopBar from "./TopBar";
 import FilterBar from "./FilterBar";
 import IssueList from "./IssueList";
 import ACUModal from "./ACUModal";
+import SettingsPanel from "./SettingsPanel";
 import ActiveSessionBanner from "./ActiveSessionBanner";
 import { IssueActions } from "./IssueDetail";
 
@@ -214,6 +216,12 @@ export default function Dashboard({
   const stateRef = useRef(state);
   stateRef.current = state;
 
+  const { keys, setKeys, clearKeys, hasKeys } = useApiKeys();
+  const keysRef = useRef(keys);
+  keysRef.current = keys;
+
+  const [settingsOpen, setSettingsOpen] = useState(false);
+
   const filteredIssues = useMemo(
     () => filterAndSortIssues(state.issues, state.filter, state.sortBy),
     [state.issues, state.filter, state.sortBy]
@@ -242,9 +250,13 @@ export default function Dashboard({
     try {
       const { owner, name } = stateRef.current.repo;
       const res = await fetch(
-        `/api/github/issues?owner=${encodeURIComponent(owner)}&repo=${encodeURIComponent(name)}`
+        `/api/github/issues?owner=${encodeURIComponent(owner)}&repo=${encodeURIComponent(name)}`,
+        { headers: apiKeyHeaders(keysRef.current) },
       );
-      if (!res.ok) throw new Error("Failed to fetch issues");
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "Failed to fetch issues");
+      }
       const raw = await res.json();
 
       const issues: DashboardIssue[] = raw.map(
@@ -374,7 +386,7 @@ export default function Dashboard({
     try {
       const res = await fetch("/api/devin/scope", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...apiKeyHeaders(keysRef.current) },
         body: JSON.stringify({
           issueTitle: issue.title,
           issueBody: issue.body,
@@ -384,7 +396,10 @@ export default function Dashboard({
         }),
       });
 
-      if (!res.ok) throw new Error("Failed to start scoping");
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "Failed to start scoping");
+      }
       const data = await res.json();
 
       dispatch({
@@ -447,10 +462,12 @@ export default function Dashboard({
       // Fetch new issues and latest commit in parallel
       const [issuesRes, commitRes] = await Promise.all([
         fetch(
-          `/api/github/issues?owner=${encodeURIComponent(owner)}&repo=${encodeURIComponent(name)}`
+          `/api/github/issues?owner=${encodeURIComponent(owner)}&repo=${encodeURIComponent(name)}`,
+          { headers: apiKeyHeaders(keysRef.current) },
         ),
         fetch(
-          `/api/github/latest-commit?owner=${encodeURIComponent(owner)}&repo=${encodeURIComponent(name)}`
+          `/api/github/latest-commit?owner=${encodeURIComponent(owner)}&repo=${encodeURIComponent(name)}`,
+          { headers: apiKeyHeaders(keysRef.current) },
         ),
       ]);
 
@@ -526,9 +543,13 @@ export default function Dashboard({
     try {
       const repoStr = current.repo ? `${current.repo.owner}/${current.repo.name}` : "";
       const res = await fetch(
-        `/api/devin/status?sessionId=${encodeURIComponent(sessionId)}&repo=${encodeURIComponent(repoStr)}&issueNumber=${issueNumber}`
+        `/api/devin/status?sessionId=${encodeURIComponent(sessionId)}&repo=${encodeURIComponent(repoStr)}&issueNumber=${issueNumber}`,
+        { headers: apiKeyHeaders(keysRef.current) },
       );
-      if (!res.ok) throw new Error("Polling failed");
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "Polling failed");
+      }
       const data = await res.json();
 
       // Find the issue being worked on
@@ -563,7 +584,8 @@ export default function Dashboard({
           if (result.patch.pr && current.repo) {
             try {
               const prRes = await fetch(
-                `/api/github/pr-details?owner=${encodeURIComponent(current.repo.owner)}&repo=${encodeURIComponent(current.repo.name)}&pr=${result.patch.pr.number}`
+                `/api/github/pr-details?owner=${encodeURIComponent(current.repo.owner)}&repo=${encodeURIComponent(current.repo.name)}&pr=${result.patch.pr.number}`,
+                { headers: apiKeyHeaders(keysRef.current) },
               );
               if (prRes.ok) {
                 const prData = await prRes.json();
@@ -627,7 +649,7 @@ export default function Dashboard({
       try {
         const res = await fetch("/api/devin/fix", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json", ...apiKeyHeaders(keysRef.current) },
           body: JSON.stringify({
             issueTitle: issue.title,
             issueBody: issue.body,
@@ -639,7 +661,10 @@ export default function Dashboard({
           }),
         });
 
-        if (!res.ok) throw new Error("Failed to start fix session");
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          throw new Error(data.error || "Failed to start fix session");
+        }
         const data = await res.json();
 
         dispatch({
@@ -683,7 +708,7 @@ export default function Dashboard({
       try {
         const res = await fetch("/api/devin/message", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json", ...apiKeyHeaders(keysRef.current) },
           body: JSON.stringify({ sessionId, message }),
         });
         if (!res.ok) {
@@ -715,7 +740,7 @@ export default function Dashboard({
       try {
         const res = await fetch("/api/devin/terminate", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json", ...apiKeyHeaders(keysRef.current) },
           body: JSON.stringify({ sessionId }),
         });
         if (!res.ok) {
@@ -764,7 +789,7 @@ export default function Dashboard({
         try {
           await fetch("/api/devin/terminate", {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: { "Content-Type": "application/json", ...apiKeyHeaders(keysRef.current) },
             body: JSON.stringify({ sessionId: issue.fix_session.session_id }),
           });
         } catch {
@@ -806,7 +831,7 @@ export default function Dashboard({
       try {
         const res = await fetch("/api/devin/message", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json", ...apiKeyHeaders(keysRef.current) },
           body: JSON.stringify({
             sessionId,
             message:
@@ -834,6 +859,8 @@ export default function Dashboard({
     [state.mode, showDemoToast]
   );
 
+  const handleOpenSettings = useCallback(() => setSettingsOpen(true), []);
+
   const actions: IssueActions = useMemo(
     () => ({
       onStartFix: handleStartFix,
@@ -842,8 +869,9 @@ export default function Dashboard({
       onAbort: handleAbort,
       onRetry: handleRetry,
       onApprove: handleApprove,
+      onOpenSettings: handleOpenSettings,
     }),
-    [handleStartFix, handleStartScope, handleSendMessage, handleAbort, handleRetry, handleApprove]
+    [handleStartFix, handleStartScope, handleSendMessage, handleAbort, handleRetry, handleApprove, handleOpenSettings]
   );
 
   return (
@@ -854,6 +882,8 @@ export default function Dashboard({
         issues={state.issues}
         onDisconnect={onDisconnect}
         onRefresh={fetchIssues}
+        onOpenSettings={() => setSettingsOpen(true)}
+        hasUserKeys={hasKeys}
         loading={state.loading}
         onToggleMode={() => {
           if (state.mode === "demo") {
@@ -879,11 +909,21 @@ export default function Dashboard({
       )}
 
       {state.error && (
-        <div className="w-full bg-accent-red/10 border-b border-accent-red/20 px-4 py-2 flex items-center justify-between">
-          <span className="text-accent-red text-sm">{state.error}</span>
+        <div className="w-full bg-accent-red/10 border-b border-accent-red/20 px-4 py-2 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2 min-w-0 flex-wrap">
+            <span className="text-accent-red text-sm">{state.error}</span>
+            {state.error.includes("Settings") && (
+              <button
+                onClick={() => { dispatch({ type: "SET_ERROR", error: null }); setSettingsOpen(true); }}
+                className="text-accent-blue text-xs font-medium hover:underline whitespace-nowrap"
+              >
+                Open Settings
+              </button>
+            )}
+          </div>
           <button
             onClick={() => dispatch({ type: "SET_ERROR", error: null })}
-            className="text-accent-red text-xs hover:underline"
+            className="text-accent-red text-xs hover:underline whitespace-nowrap"
           >
             Dismiss
           </button>
@@ -931,6 +971,14 @@ export default function Dashboard({
             dispatch({ type: "SET_MODE", mode: "live" });
           }
         }}
+      />
+
+      <SettingsPanel
+        open={settingsOpen}
+        onClose={() => setSettingsOpen(false)}
+        keys={keys}
+        onSave={setKeys}
+        onClear={clearKeys}
       />
 
       {/* Demo mode toast */}

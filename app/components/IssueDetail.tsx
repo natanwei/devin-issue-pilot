@@ -25,6 +25,7 @@ export interface IssueActions {
   onAbort: (issueNumber: number, sessionId: string) => void;
   onRetry: (issue: DashboardIssue) => void;
   onApprove: (issueNumber: number, sessionId: string) => void;
+  onOpenSettings: () => void;
 }
 
 interface IssueDetailProps {
@@ -451,6 +452,7 @@ function BlockedView({
   issue: DashboardIssue;
   actions: IssueActions;
 }) {
+  const isCredentialIssue = issue.blocker?.suggestion.includes("Setup Guide") ?? false;
   const sessionId = issue.fix_session?.session_id;
   const isSleeping = issue.blocker?.what_happened.includes("went to sleep") ?? false;
 
@@ -475,6 +477,17 @@ function BlockedView({
           </span>
           <p className="text-text-secondary text-sm leading-relaxed">
             {issue.blocker.suggestion}
+            {isCredentialIssue && (
+              <>
+                {" "}
+                <button
+                  onClick={actions.onOpenSettings}
+                  className="text-accent-blue text-sm font-medium hover:underline"
+                >
+                  Open Settings
+                </button>
+              </>
+            )}
           </p>
         </div>
       )}

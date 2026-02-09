@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createFixSession } from "@/lib/devin";
+import { translateError } from "@/lib/error-messages";
 import { upsertIssueSession } from "@/lib/supabase";
 
 export const maxDuration = 60;
@@ -24,12 +25,15 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const devinApiKey = req.headers.get("x-devin-api-key") || undefined;
+
     const result = await createFixSession({
       issueTitle,
       issueBody: issueBody || "",
       issueNumber,
       repo,
       acuLimit: acuLimit || 15,
+      devinApiKey,
       scopingResult,
       previousContext: previousContext || undefined,
     });
@@ -52,7 +56,8 @@ export async function POST(req: NextRequest) {
       sessionUrl: result.url,
     });
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Unknown error";
-    return NextResponse.json({ error: message }, { status: 500 });
+    const rawMessage = err instanceof Error ? err.message : "Unknown error";
+    const { message, isAuth } = translateError(rawMessage);
+    return NextResponse.json({ error: message, isAuth }, { status: 500 });
   }
 }

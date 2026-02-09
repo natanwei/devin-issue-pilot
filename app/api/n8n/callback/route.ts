@@ -9,7 +9,7 @@ export async function POST(req: NextRequest) {
 
     // Validate shared secret
     const expected = process.env.N8N_CALLBACK_SECRET;
-    if (expected && secret !== expected) {
+    if (!expected || secret !== expected) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 

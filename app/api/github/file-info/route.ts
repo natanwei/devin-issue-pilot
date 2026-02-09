@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getFileInfo } from "@/lib/github";
+import { translateError } from "@/lib/error-messages";
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
@@ -15,10 +16,12 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const info = await getFileInfo(owner, repo, path);
+    const githubToken = req.headers.get("x-github-token") || undefined;
+    const info = await getFileInfo(owner, repo, path, githubToken);
     return NextResponse.json(info);
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Unknown error";
-    return NextResponse.json({ error: message }, { status: 500 });
+    const rawMessage = err instanceof Error ? err.message : "Unknown error";
+    const { message, isAuth } = translateError(rawMessage);
+    return NextResponse.json({ error: message, isAuth }, { status: 500 });
   }
 }

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession, isTerminal } from "@/lib/devin";
+import { translateError } from "@/lib/error-messages";
 import { extractStructuredOutputFromMessages, parseStructuredOutput } from "@/lib/parsers";
 import { getIssueSessionByDevinId, upsertIssueSession } from "@/lib/supabase";
 
@@ -19,9 +20,11 @@ export async function GET(req: NextRequest) {
   }
 
   try {
+    const devinApiKey = req.headers.get("x-devin-api-key") || undefined;
+
     const [supabaseRow, session] = await Promise.all([
       getIssueSessionByDevinId(sessionId),
-      getSession(sessionId),
+      getSession(sessionId, devinApiKey),
     ]);
 
     // Extract the last Devin message for blocker display
@@ -53,11 +56,12 @@ export async function GET(req: NextRequest) {
     const terminal = isTerminal(session.status_enum);
 
     // Persist results to Supabase when terminal or when we have output
-    if ((terminal || structuredOutput) && repo && issueNumber) {
+    const issueNum = issueNumber ? Number(issueNumber) : NaN;
+    if ((terminal || structuredOutput) && repo && Number.isInteger(issueNum) && issueNum > 0) {
       const parsed = structuredOutput ? parseStructuredOutput(structuredOutput) : null;
       await upsertIssueSession({
         repo,
-        issue_number: parseInt(issueNumber, 10),
+        issue_number: issueNum,
         status: session.pull_request ? "done" : parsed ? "scoped" : session.status_enum,
         confidence: parsed?.confidence ?? null,
         scoping: parsed as Record<string, unknown> | null,
@@ -79,7 +83,8 @@ export async function GET(req: NextRequest) {
       blockerMessage,
     });
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Unknown error";
-    return NextResponse.json({ error: message }, { status: 500 });
+    const rawMessage = err instanceof Error ? err.message : "Unknown error";
+    const { message, isAuth } = translateError(rawMessage);
+    return NextResponse.json({ error: message, isAuth }, { status: 500 });
   }
 }

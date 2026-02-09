@@ -1,6 +1,6 @@
 "use client";
 
-import { Bot, X, RefreshCw } from "lucide-react";
+import { Bot, X, RefreshCw, Settings } from "lucide-react";
 import { DashboardIssue } from "@/lib/types";
 
 interface TopBarProps {
@@ -10,6 +10,8 @@ interface TopBarProps {
   onDisconnect: () => void;
   onToggleMode: () => void;
   onRefresh: () => void;
+  onOpenSettings: () => void;
+  hasUserKeys: boolean;
   loading: boolean;
 }
 
@@ -20,6 +22,8 @@ export default function TopBar({
   onDisconnect,
   onToggleMode,
   onRefresh,
+  onOpenSettings,
+  hasUserKeys,
   loading,
 }: TopBarProps) {
   const totalIssues = issues.length;
@@ -84,6 +88,17 @@ export default function TopBar({
           title="Refresh issues"
         >
           <RefreshCw className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} />
+        </button>
+        <span className="text-[#444444]">·</span>
+        <button
+          onClick={onOpenSettings}
+          className="text-text-muted hover:text-text-secondary transition-colors relative"
+          title="API Key Settings"
+        >
+          <Settings className="h-3.5 w-3.5" />
+          {hasUserKeys && (
+            <span className="absolute -top-0.5 -right-0.5 h-1.5 w-1.5 rounded-full bg-accent-green" />
+          )}
         </button>
         <span className="text-[#444444]">·</span>
         <div className="flex items-center bg-elevated rounded-full p-0.5 gap-0.5">

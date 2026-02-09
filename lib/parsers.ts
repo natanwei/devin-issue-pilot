@@ -233,14 +233,15 @@ export function interpretPollResult(
 
   // 5. Blocked
   if (data.statusEnum === "blocked") {
+    const whatHappened = (data.blockerMessage || data.status || "Devin needs input")
+      .replace(/\[\/?\w+\]/g, "")
+      .trim();
+    const { suggestion } = classifyBlocker(whatHappened);
     return {
       action: "blocked",
       patch: {
         status: "blocked",
-        blocker: {
-          what_happened: (data.blockerMessage || data.status || "Devin needs input").replace(/\[\/?\w+\]/g, "").trim(),
-          suggestion: "Please provide guidance to continue",
-        },
+        blocker: { what_happened: whatHappened, suggestion },
       },
     };
   }
@@ -264,6 +265,26 @@ export function interpretPollResult(
     action: "continue",
     nextPollCategory: sessionType === "scoping" ? "scoping" : "fixing",
   };
+}
+
+// --- blocker classification ---
+
+/** Classify a blocker message to provide an actionable suggestion.
+ *  Uses fuzzy keyword matching since Devin messages are AI-generated. */
+export function classifyBlocker(message: string): { suggestion: string } {
+  const lower = message.toLowerCase();
+
+  // GitHub credential / access issues (both regexes must match)
+  const hasGitHub = /github|git push|repository|repo/.test(lower);
+  const hasAuth = /credential|token|access|authenticat|permiss|push.*fail|write access/.test(lower);
+  if (hasGitHub && hasAuth) {
+    return {
+      suggestion:
+        "Devin needs GitHub access to this repo. Install the Devin GitHub App via Settings \u2192 Setup Guide, step 3.",
+    };
+  }
+
+  return { suggestion: "Please provide guidance to continue" };
 }
 
 // --- helpers ---

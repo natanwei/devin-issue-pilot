@@ -1,8 +1,8 @@
 import { DEVIN_API_BASE } from "./constants";
 import { DevinStatusEnum } from "./types";
 
-const headers = () => ({
-  Authorization: `Bearer ${process.env.DEVIN_API_KEY}`,
+const headers = (apiKey?: string) => ({
+  Authorization: `Bearer ${apiKey || process.env.DEVIN_API_KEY}`,
   "Content-Type": "application/json",
 });
 
@@ -31,6 +31,7 @@ export async function createScopingSession(params: {
   issueNumber: number;
   repo: string;
   acuLimit: number;
+  devinApiKey?: string;
 }): Promise<CreateSessionResponse> {
   const prompt = `You are analyzing GitHub issue #${params.issueNumber} from ${params.repo}.
 
@@ -68,7 +69,7 @@ IMPORTANT: Your JSON analysis MUST appear in your message wrapped in \`\`\`json 
 
   const res = await fetch(`${DEVIN_API_BASE}/sessions`, {
     method: "POST",
-    headers: headers(),
+    headers: headers(params.devinApiKey),
     body: JSON.stringify({
       prompt,
       idempotent: true,
@@ -92,6 +93,7 @@ export async function createFixSession(params: {
   issueNumber: number;
   repo: string;
   acuLimit: number;
+  devinApiKey?: string;
   scopingResult: {
     current_behavior: string;
     requested_fix: string;
@@ -128,7 +130,7 @@ Please implement the fix following the action plan above. Create a pull request 
 
   const res = await fetch(`${DEVIN_API_BASE}/sessions`, {
     method: "POST",
-    headers: headers(),
+    headers: headers(params.devinApiKey),
     body: JSON.stringify({
       prompt,
       idempotent: true,
@@ -147,11 +149,12 @@ Please implement the fix following the action plan above. Create a pull request 
 }
 
 export async function getSession(
-  sessionId: string
+  sessionId: string,
+  devinApiKey?: string,
 ): Promise<SessionStatusResponse> {
   const res = await fetch(`${DEVIN_API_BASE}/sessions/${sessionId}`, {
     method: "GET",
-    headers: headers(),
+    headers: headers(devinApiKey),
   });
 
   if (!res.ok) {
@@ -164,11 +167,12 @@ export async function getSession(
 
 export async function sendMessage(
   sessionId: string,
-  message: string
+  message: string,
+  devinApiKey?: string,
 ): Promise<void> {
   const res = await fetch(`${DEVIN_API_BASE}/sessions/${sessionId}/messages`, {
     method: "POST",
-    headers: headers(),
+    headers: headers(devinApiKey),
     body: JSON.stringify({ message }),
   });
 
@@ -178,10 +182,10 @@ export async function sendMessage(
   }
 }
 
-export async function deleteSession(sessionId: string): Promise<void> {
+export async function deleteSession(sessionId: string, devinApiKey?: string): Promise<void> {
   const res = await fetch(`${DEVIN_API_BASE}/sessions/${sessionId}`, {
     method: "DELETE",
-    headers: headers(),
+    headers: headers(devinApiKey),
   });
 
   if (!res.ok) {

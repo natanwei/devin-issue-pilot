@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getPRDetails, parsePatch } from "@/lib/github";
+import { translateError } from "@/lib/error-messages";
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
@@ -14,11 +15,21 @@ export async function GET(req: NextRequest) {
     );
   }
 
+  const prNum = Number(pr);
+  if (!Number.isInteger(prNum) || prNum < 1) {
+    return NextResponse.json(
+      { error: "Invalid PR number" },
+      { status: 400 }
+    );
+  }
+
   try {
+    const githubToken = req.headers.get("x-github-token") || undefined;
     const { pr: prData, files } = await getPRDetails(
       owner,
       repo,
-      parseInt(pr)
+      prNum,
+      githubToken,
     );
 
     return NextResponse.json({
@@ -34,7 +45,8 @@ export async function GET(req: NextRequest) {
       })),
     });
   } catch (err) {
-    const message = err instanceof Error ? err.message : "Unknown error";
-    return NextResponse.json({ error: message }, { status: 500 });
+    const rawMessage = err instanceof Error ? err.message : "Unknown error";
+    const { message, isAuth } = translateError(rawMessage);
+    return NextResponse.json({ error: message, isAuth }, { status: 500 });
   }
 }

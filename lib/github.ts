@@ -1,9 +1,9 @@
 import { Octokit } from "@octokit/rest";
 import { DiffLine } from "./types";
 
-function getOctokit() {
+function getOctokit(token?: string) {
   return new Octokit({
-    auth: process.env.GITHUB_TOKEN,
+    auth: token || process.env.GITHUB_TOKEN,
   });
 }
 
@@ -19,9 +19,10 @@ export interface GitHubIssueRaw {
 
 export async function listIssues(
   owner: string,
-  repo: string
+  repo: string,
+  githubToken?: string,
 ): Promise<GitHubIssueRaw[]> {
-  const octokit = getOctokit();
+  const octokit = getOctokit(githubToken);
   const { data } = await octokit.issues.listForRepo({
     owner,
     repo,
@@ -53,9 +54,10 @@ export async function listIssues(
 
 export async function getLatestCommit(
   owner: string,
-  repo: string
+  repo: string,
+  githubToken?: string,
 ): Promise<{ sha: string; date: string }> {
-  const octokit = getOctokit();
+  const octokit = getOctokit(githubToken);
   const { data } = await octokit.repos.listCommits({
     owner,
     repo,
@@ -70,9 +72,10 @@ export async function getLatestCommit(
 export async function getFileInfo(
   owner: string,
   repo: string,
-  path: string
+  path: string,
+  githubToken?: string,
 ): Promise<{ path: string; lines: number | null }> {
-  const octokit = getOctokit();
+  const octokit = getOctokit(githubToken);
   try {
     const { data } = await octokit.repos.getContent({
       owner,
@@ -111,9 +114,10 @@ export interface PRFileRaw {
 export async function getPRDetails(
   owner: string,
   repo: string,
-  prNumber: number
+  prNumber: number,
+  githubToken?: string,
 ): Promise<{ pr: PRDetailsRaw; files: PRFileRaw[] }> {
-  const octokit = getOctokit();
+  const octokit = getOctokit(githubToken);
 
   const [{ data: pr }, { data: files }] = await Promise.all([
     octokit.pulls.get({ owner, repo, pull_number: prNumber }),
