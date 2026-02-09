@@ -170,7 +170,7 @@ export async function sendMessage(
   message: string,
   devinApiKey?: string,
 ): Promise<void> {
-  const res = await fetch(`${DEVIN_API_BASE}/sessions/${sessionId}/messages`, {
+  const res = await fetch(`${DEVIN_API_BASE}/sessions/${sessionId}/message`, {
     method: "POST",
     headers: headers(devinApiKey),
     body: JSON.stringify({ message }),

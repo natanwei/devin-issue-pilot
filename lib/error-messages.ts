@@ -28,6 +28,14 @@ export function translateError(rawMessage: string): {
     };
   }
 
+  // Devin 404 — session not found or expired
+  if (/Devin API error 404/i.test(rawMessage)) {
+    return {
+      message: "Devin session not found or expired. Try re-scoping the issue.",
+      isAuth: false,
+    };
+  }
+
   // GitHub 401 — bad credentials (Octokit throws "Bad credentials" or "Unauthorized")
   if (
     !/Devin/i.test(rawMessage) &&

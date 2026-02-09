@@ -84,7 +84,8 @@ export async function GET(req: NextRequest) {
     });
   } catch (err) {
     const rawMessage = err instanceof Error ? err.message : "Unknown error";
+    const status = /Devin API error 404/i.test(rawMessage) ? 404 : 500;
     const { message, isAuth } = translateError(rawMessage);
-    return NextResponse.json({ error: message, isAuth }, { status: 500 });
+    return NextResponse.json({ error: message, isAuth }, { status });
   }
 }

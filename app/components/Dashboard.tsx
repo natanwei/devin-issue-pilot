@@ -549,6 +549,11 @@ export default function Dashboard({
       );
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
+        if (res.status === 404) {
+          dispatch({ type: "SET_ERROR", error: data.error || "Session expired" });
+          dispatch({ type: "CLEAR_SESSION" });
+          return;
+        }
         throw new Error(data.error || "Polling failed");
       }
       const data = await res.json();
