@@ -209,6 +209,28 @@ describe("Full data flow: blocked session", () => {
       });
     }
   });
+
+  it("uses Devin message over status text when messages are present", () => {
+    const parsed = parseSessionResponse({
+      ...RAW_BLOCKED,
+      status: "running",
+      messages: [
+        { type: "devin_message", message: "I need GitHub authentication to push the branch." },
+      ],
+    });
+    expect(parsed.blockerMessage).toBe("I need GitHub authentication to push the branch.");
+
+    const result = interpretPollResult(parsed, "fixing", {
+      ...DEFAULT_CONTEXT,
+      sessionStartedAt: "2026-02-08T11:50:00Z",
+    });
+    expect(result.action).toBe("blocked");
+    if (result.action === "blocked") {
+      expect(result.patch.blocker?.what_happened).toBe(
+        "I need GitHub authentication to push the branch."
+      );
+    }
+  });
 });
 
 // ---------------------------------------------------------------------------

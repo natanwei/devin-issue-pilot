@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { DashboardIssue, DashboardAction } from "@/lib/types";
 import { CONFIDENCE_CONFIG } from "@/lib/constants";
 import DevinQuestions from "./DevinQuestions";
@@ -367,11 +368,20 @@ function FixingView({
   issue: DashboardIssue;
   actions: IssueActions;
 }) {
-  const elapsed = issue.fix_session
-    ? Math.floor(
-        (Date.now() - new Date(issue.fix_session.started_at).getTime()) / 1000
-      )
-    : 272; // 4m 32s fallback for demo
+  const [elapsed, setElapsed] = useState(() =>
+    issue.fix_session
+      ? Math.floor((Date.now() - new Date(issue.fix_session.started_at).getTime()) / 1000)
+      : 272 // 4m 32s fallback for demo
+  );
+
+  useEffect(() => {
+    if (!issue.fix_session) return;
+    const interval = setInterval(() => {
+      setElapsed(Math.floor((Date.now() - new Date(issue.fix_session!.started_at).getTime()) / 1000));
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [issue.fix_session]);
+
   const minutes = Math.floor(elapsed / 60);
   const seconds = elapsed % 60;
 

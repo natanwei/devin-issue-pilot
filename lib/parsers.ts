@@ -22,6 +22,7 @@ export interface StatusRouteResponse {
   updatedAt: string;
   pullRequest: { url: string } | null;
   structuredOutput: Record<string, unknown> | null;
+  blockerMessage?: string | null;
 }
 
 /** Discriminated union of all possible poll-interpretation outcomes. */
@@ -167,6 +168,10 @@ interface RawSessionResponse {
 /** Transform the raw snake_case Devin response into our camelCase shape.
  *  Mirrors the transformation in /api/devin/status/route.ts. */
 export function parseSessionResponse(raw: RawSessionResponse): StatusRouteResponse {
+  const lastDevinMessage = raw.messages
+    ?.filter((m) => m.type === "devin_message" || !m.type)
+    ?.at(-1);
+
   return {
     sessionId: raw.session_id,
     statusEnum: raw.status_enum,
@@ -176,6 +181,7 @@ export function parseSessionResponse(raw: RawSessionResponse): StatusRouteRespon
     updatedAt: raw.updated_at,
     pullRequest: raw.pull_request || null,
     structuredOutput: raw.structured_output || extractStructuredOutputFromMessages(raw.messages) || null,
+    blockerMessage: lastDevinMessage?.message || lastDevinMessage?.content || null,
   };
 }
 
@@ -232,7 +238,7 @@ export function interpretPollResult(
       patch: {
         status: "blocked",
         blocker: {
-          what_happened: data.status || "Devin needs input",
+          what_happened: data.blockerMessage || data.status || "Devin needs input",
           suggestion: "Please provide guidance to continue",
         },
       },

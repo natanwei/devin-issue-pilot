@@ -24,6 +24,12 @@ export async function GET(req: NextRequest) {
       getSession(sessionId),
     ]);
 
+    // Extract the last Devin message for blocker display
+    const lastDevinMessage = session.messages
+      ?.filter((m) => m.type === "devin_message" || !m.type)
+      ?.at(-1);
+    const blockerMessage = lastDevinMessage?.message || lastDevinMessage?.content || null;
+
     // n8n already extracted and persisted → use Supabase as source of truth
     if (supabaseRow?.status === "scoped" && supabaseRow?.scoping) {
       return NextResponse.json({
@@ -35,6 +41,7 @@ export async function GET(req: NextRequest) {
         updatedAt: session.updated_at,
         pullRequest: session.pull_request || null,
         structuredOutput: supabaseRow.scoping,
+        blockerMessage,
       });
     }
 
@@ -69,6 +76,7 @@ export async function GET(req: NextRequest) {
       updatedAt: session.updated_at,
       pullRequest: session.pull_request || null,
       structuredOutput,
+      blockerMessage,
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unknown error";
