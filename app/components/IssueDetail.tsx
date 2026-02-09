@@ -150,8 +150,12 @@ function ConfidenceHeader({ issue }: { issue: DashboardIssue }) {
     reasonText = `Fixing in progress (Step ${inProgress + 1} of ${issue.steps.length})`;
     reasonColor = "text-accent-blue";
   } else if (issue.status === "blocked") {
-    const blocked = issue.steps.findIndex((s) => s.status === "blocked");
-    reasonText = `Blocked at Step ${blocked + 1} of ${issue.steps.length}`;
+    if (issue.steps.length > 0) {
+      const blocked = issue.steps.findIndex((s) => s.status === "blocked");
+      reasonText = `Blocked at Step ${blocked + 1} of ${issue.steps.length}`;
+    } else {
+      reasonText = "Devin needs input";
+    }
     reasonColor = "text-accent-amber";
   } else if (issue.status === "done" || issue.status === "pr_open") {
     reasonText = "PR opened ✅";

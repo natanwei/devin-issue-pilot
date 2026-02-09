@@ -238,7 +238,7 @@ export function interpretPollResult(
       patch: {
         status: "blocked",
         blocker: {
-          what_happened: data.blockerMessage || data.status || "Devin needs input",
+          what_happened: (data.blockerMessage || data.status || "Devin needs input").replace(/\[\/?\w+\]/g, "").trim(),
           suggestion: "Please provide guidance to continue",
         },
       },
