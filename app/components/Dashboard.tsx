@@ -357,6 +357,7 @@ export default function Dashboard({
                 pr: (p.pr as PRInfo) || null,
                 steps: (p.steps as StepItem[]) || [],
                 files_info: (p.files_info as FileInfo[]) || [],
+                messages: (p.messages as DashboardIssue["messages"]) || [],
                 last_devin_comment_id: p.last_devin_comment_id ?? null,
                 last_devin_comment_at: p.last_devin_comment_at ?? null,
                 github_comment_url: p.github_comment_url ?? null,
@@ -400,6 +401,7 @@ export default function Dashboard({
                   pr: (s.pr as PRInfo) || null,
                   steps: (s.steps as StepItem[]) || [],
                   files_info: (s.files_info as FileInfo[]) || [],
+                  messages: (s.messages as DashboardIssue["messages"]) || [],
                   last_devin_comment_id: s.last_devin_comment_id ?? null,
                   last_devin_comment_at: s.last_devin_comment_at ?? null,
                   github_comment_url: s.github_comment_url ?? null,
@@ -968,8 +970,8 @@ export default function Dashboard({
           break;
         }
 
-<<<<<<< HEAD
-        case "continue":
+        case "continue": {
+          const cont = result as Extract<PollResult, { action: "continue" }>;
           // Inbound: also poll for replies during awaiting_reply
           if (issue.status === "awaiting_reply" && issue.last_devin_comment_at) {
             const activeSessionId =
@@ -978,19 +980,12 @@ export default function Dashboard({
               await pollInboundComments(issue, activeSessionId);
             }
           }
-          scheduleNextPoll(result.nextPollCategory);
-||||||| parent of 821afc9 (UI: add ConversationThread; fix scoping loop; add messages to types/parsers; update dashboard/demos; remove fake GitHub link)
-        case "continue":
-          scheduleNextPoll(result.nextPollCategory);
-=======
-        case "continue": {
-          const cont = result as Extract<PollResult, { action: "continue" }>;
           if (cont.patch) {
             dispatch({ type: "UPDATE_ISSUE", issueNumber, patch: cont.patch });
           }
           scheduleNextPoll(cont.nextPollCategory);
->>>>>>> 821afc9 (UI: add ConversationThread; fix scoping loop; add messages to types/parsers; update dashboard/demos; remove fake GitHub link)
           break;
+        }
         }
       }
     } catch (err) {
