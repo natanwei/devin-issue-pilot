@@ -19,22 +19,14 @@ import {
 } from "@/lib/types";
 import {
   CONFIDENCE_SORT_ORDER,
-  POLLING_INTERVALS,
   ISSUE_REFRESH_INTERVAL,
 } from "@/lib/constants";
-import { interpretPollResult } from "@/lib/parsers";
-import type { PollResult } from "@/lib/parsers";
 import { useApiKeys, apiKeyHeaders } from "@/lib/api-keys";
 import { decideRetryPath } from "@/lib/retry";
 import { getDemoIssues } from "@/lib/demo-data";
-import {
-  formatScopingComment,
-  formatReadyComment,
-  formatBlockedComment,
-  formatDoneComment,
-  isDevinComment,
-  isDuplicateMessage,
-} from "@/lib/comment-templates";
+import { createPendingIssue } from "@/lib/factories";
+import { useGitHubCommentBridge } from "@/app/hooks/useGitHubCommentBridge";
+import { useSessionPolling } from "@/app/hooks/useSessionPolling";
 import TopBar from "./TopBar";
 import FilterBar from "./FilterBar";
 import IssueList from "./IssueList";
@@ -229,10 +221,6 @@ function filterAndSortIssues(
   });
 }
 
-function getPollingInterval(status: string): number {
-  return POLLING_INTERVALS[status] ?? POLLING_INTERVALS.default;
-}
-
 export default function Dashboard({
   repo,
   initialMode,
@@ -244,11 +232,9 @@ export default function Dashboard({
     ({ repo, mode }) => createInitialState(repo, mode)
   );
 
-  const pollingRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const issueRefreshRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const scopingInProgressRef = useRef(false);
   const pendingMessagesRef = useRef<Map<number, string>>(new Map());
-  const forwardingRef = useRef<Set<number>>(new Set());
   const stateRef = useRef(state);
   stateRef.current = state;
 
@@ -284,6 +270,11 @@ export default function Dashboard({
     };
   }, []);
 
+  // --- GitHub Comment Bridge ---
+  const { postGitHubComment, pollInboundComments } = useGitHubCommentBridge(
+    stateRef, keysRef, pendingMessagesRef, dispatch, showToast,
+  );
+
   // --- Fetch issues from GitHub (live mode) ---
   const fetchIssues = useCallback(async () => {
     if (stateRef.current.mode !== "live" || !stateRef.current.repo) return;
@@ -300,36 +291,8 @@ export default function Dashboard({
       }
       const raw = await res.json();
 
-      const issues: DashboardIssue[] = raw.map(
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (r: any) => ({
-          number: r.number,
-          title: r.title,
-          body: r.body || "",
-          labels: r.labels,
-          created_at: r.created_at,
-          updated_at: r.updated_at,
-          github_url: r.html_url,
-          status: "pending" as const,
-          confidence: null,
-          scoping: null,
-          files_info: [],
-          fix_progress: null,
-          blocker: null,
-          pr: null,
-          steps: [],
-          messages: [],
-          scoping_session: null,
-          fix_session: null,
-          last_devin_comment_id: null,
-          last_devin_comment_at: null,
-          github_comment_url: null,
-          forwarded_comment_ids: [],
-          scoped_at: null,
-          fix_started_at: null,
-          completed_at: null,
-        })
-      );
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const issues: DashboardIssue[] = raw.map((r: any) => createPendingIssue(r));
 
       // Hydrate from Supabase (merge persisted session data onto fresh GitHub issues)
       try {
@@ -385,15 +348,10 @@ export default function Dashboard({
               if (issueRes.ok) {
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 const r: any = await issueRes.json();
+                const base = createPendingIssue(r);
                 issues.push({
-                  number: r.number,
-                  title: r.title,
-                  body: r.body || "",
-                  labels: r.labels,
-                  created_at: r.created_at,
-                  updated_at: r.updated_at,
-                  github_url: r.html_url,
-                  status: (s.status as IssueStatus) || "pending",
+                  ...base,
+                  status: (s.status as IssueStatus) || base.status,
                   confidence: (s.confidence as ConfidenceLevel) || null,
                   scoping: (s.scoping as ScopingResult) || null,
                   scoping_session: (s.scoping_session as SessionInfo) || null,
@@ -613,33 +571,7 @@ export default function Dashboard({
       if (issuesRes.ok) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const raw: any[] = await issuesRes.json();
-        const newIssues: DashboardIssue[] = raw.map((r) => ({
-          number: r.number,
-          title: r.title,
-          body: r.body || "",
-          labels: r.labels,
-          created_at: r.created_at,
-          updated_at: r.updated_at,
-          github_url: r.html_url,
-          status: "pending" as const,
-          confidence: null,
-          scoping: null,
-          files_info: [],
-          fix_progress: null,
-          blocker: null,
-          pr: null,
-          steps: [],
-          messages: [],
-          scoping_session: null,
-          fix_session: null,
-          last_devin_comment_id: null,
-          last_devin_comment_at: null,
-          github_comment_url: null,
-          forwarded_comment_ids: [],
-          scoped_at: null,
-          fix_started_at: null,
-          completed_at: null,
-        }));
+        const newIssues: DashboardIssue[] = raw.map((r) => createPendingIssue(r));
         dispatch({ type: "ADD_ISSUES", issues: newIssues });
       }
 
@@ -672,400 +604,9 @@ export default function Dashboard({
   }, [state.mode, state.loading, refreshIssues]);
 
   // --- Polling for active sessions ---
-  const scheduleNextPoll = useCallback((status: string) => {
-    if (pollingRef.current) clearTimeout(pollingRef.current);
-    pollingRef.current = setTimeout(() => pollSessionRef.current(), getPollingInterval(status));
-  }, []);
-
-  // --- GitHub Comment Bridge helpers ---
-  const postGitHubComment = useCallback(
-    async (
-      issueNumber: number,
-      commentBody: string,
-    ): Promise<{ id: number; created_at: string; html_url: string } | null> => {
-      const current = stateRef.current;
-      if (!current.repo) return null;
-      try {
-        const res = await fetch("/api/github/comments", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            ...apiKeyHeaders(keysRef.current),
-          },
-          body: JSON.stringify({
-            owner: current.repo.owner,
-            repo: current.repo.name,
-            issueNumber,
-            comment: commentBody,
-          }),
-        });
-        if (!res.ok) {
-          if (res.status === 403) {
-            showToast("GitHub comments disabled \u2014 token missing write access", 4000);
-            return null;
-          }
-          return null;
-        }
-        return await res.json();
-      } catch {
-        return null;
-      }
-    },
-    [showToast],
+  const { scheduleNextPoll } = useSessionPolling(
+    stateRef, keysRef, dispatch, postGitHubComment, pollInboundComments,
   );
-
-  const pollInboundComments = useCallback(
-    async (issue: DashboardIssue, sessionId: string): Promise<boolean> => {
-      if (forwardingRef.current.has(issue.number)) return false;
-      forwardingRef.current.add(issue.number);
-      try {
-        const current = stateRef.current;
-        if (!current.repo || !issue.last_devin_comment_at) return false;
-        try {
-        const res = await fetch(
-          `/api/github/comments?owner=${encodeURIComponent(current.repo.owner)}&repo=${encodeURIComponent(current.repo.name)}&issueNumber=${issue.number}&since=${encodeURIComponent(issue.last_devin_comment_at)}`,
-          { headers: apiKeyHeaders(keysRef.current) },
-        );
-        if (!res.ok) return false;
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const comments: any[] = await res.json();
-
-        const alreadyForwarded = new Set(issue.forwarded_comment_ids);
-        const newForwardedIds: number[] = [];
-
-        const pendingMsg = pendingMessagesRef.current.get(issue.number);
-
-        for (const c of comments) {
-          if (alreadyForwarded.has(c.id)) continue;
-          if (isDevinComment(c.body)) continue;
-
-          if (pendingMsg && isDuplicateMessage(c.body, pendingMsg, c.created_at, new Date().toISOString())) {
-            newForwardedIds.push(c.id);
-            continue;
-          }
-
-          try {
-            await fetch("/api/devin/message", {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                ...apiKeyHeaders(keysRef.current),
-              },
-              body: JSON.stringify({
-                sessionId,
-                message: `The user has provided the following clarification to your open questions (via GitHub comment from @${c.user?.login || "unknown"}):\n"${c.body}"\n\nPlease re-analyze the issue with this new information and output an UPDATED JSON analysis wrapped in \`\`\`json fences (same schema). Update your confidence level accordingly.\nDo NOT start implementing the fix — only provide the updated analysis.`,
-              }),
-            });
-            // Acknowledge receipt with eyes reaction
-            fetch("/api/github/reactions", {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                ...apiKeyHeaders(keysRef.current),
-              },
-              body: JSON.stringify({
-                owner: current.repo!.owner,
-                repo: current.repo!.name,
-                commentId: c.id,
-              }),
-            }).catch(() => {});
-            newForwardedIds.push(c.id);
-          } catch {
-            // Forward failure is non-critical
-          }
-        }
-
-        if (newForwardedIds.length > 0) {
-          const updatedIds = [...issue.forwarded_comment_ids, ...newForwardedIds];
-          dispatch({
-            type: "UPDATE_ISSUE",
-            issueNumber: issue.number,
-            patch: { forwarded_comment_ids: updatedIds },
-          });
-
-          // Trigger re-scoping so the dashboard polls for Devin's updated analysis
-          dispatch({
-            type: "UPDATE_ISSUE",
-            issueNumber: issue.number,
-            patch: {
-              status: "scoping" as const,
-              confidence: null,
-              scoping: null,
-              scoped_at: null,
-            },
-          });
-          dispatch({
-            type: "SET_SESSION",
-            sessionId,
-            sessionUrl: issue.scoping_session?.session_url || "",
-            issueNumber: issue.number,
-            sessionType: "scoping",
-          });
-
-          if (current.repo) {
-            fetch("/api/supabase/sessions", {
-              method: "PATCH",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                repo: `${current.repo.owner}/${current.repo.name}`,
-                issue_number: issue.number,
-                forwarded_comment_ids: updatedIds,
-                status: "scoping",
-                scoping: null,
-                scoped_at: null,
-              }),
-            }).catch(() => {});
-          }
-          return true;
-        }
-        return false;
-      } catch {
-        // Inbound comment polling failure is non-critical
-        return false;
-      }
-      } finally {
-        forwardingRef.current.delete(issue.number);
-      }
-    },
-    [],
-  );
-
-  const pollSessionRef = useRef(async () => {});
-  pollSessionRef.current = async () => {
-    const current = stateRef.current;
-    if (current.mode !== "live" || !current.activeSession) return;
-
-    const { sessionId, issueNumber, type } = current.activeSession;
-
-    try {
-      const repoStr = current.repo ? `${current.repo.owner}/${current.repo.name}` : "";
-      const res = await fetch(
-        `/api/devin/status?sessionId=${encodeURIComponent(sessionId)}&repo=${encodeURIComponent(repoStr)}&issueNumber=${issueNumber}`,
-        { headers: apiKeyHeaders(keysRef.current) },
-      );
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        if (res.status === 404) {
-          dispatch({ type: "SET_ERROR", error: data.error || "Session expired" });
-          dispatch({ type: "CLEAR_SESSION" });
-          return;
-        }
-        throw new Error(data.error || "Polling failed");
-      }
-      const data = await res.json();
-
-      // Find the issue being worked on
-      const issue = current.issues.find((i) => i.number === issueNumber);
-      if (!issue) return;
-
-      const result = interpretPollResult(data, type, {
-        issueNumber,
-      });
-
-      switch (result.action) {
-        case "timed_out":
-        case "failed":
-          dispatch({ type: "UPDATE_ISSUE", issueNumber, patch: result.patch });
-          dispatch({ type: "CLEAR_SESSION" });
-          break;
-
-        case "scoped": {
-          dispatch({ type: "UPDATE_ISSUE", issueNumber, patch: result.patch });
-          dispatch({ type: "CLEAR_SESSION" });
-
-          // Outbound: post scoping questions on GitHub for yellow/red
-          const patchConf = result.patch.confidence;
-          const patchScoping = result.patch.scoping;
-          if (
-            patchScoping &&
-            (patchConf === "yellow" || patchConf === "red") &&
-            patchScoping.open_questions.length > 0
-          ) {
-            const body = formatScopingComment(issueNumber, patchScoping);
-            const posted = await postGitHubComment(issueNumber, body);
-            if (posted) {
-              dispatch({
-                type: "UPDATE_ISSUE",
-                issueNumber,
-                patch: {
-                  status: "awaiting_reply",
-                  last_devin_comment_id: posted.id,
-                  last_devin_comment_at: posted.created_at,
-                  github_comment_url: posted.html_url,
-                },
-              });
-              if (current.repo) {
-                fetch("/api/supabase/sessions", {
-                  method: "PATCH",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({
-                    repo: `${current.repo.owner}/${current.repo.name}`,
-                    issue_number: issueNumber,
-                    status: "awaiting_reply",
-                    last_devin_comment_id: posted.id,
-                    last_devin_comment_at: posted.created_at,
-                    github_comment_url: posted.html_url,
-                  }),
-                }).catch(() => {});
-              }
-            }
-          } else if (
-            patchConf === "green" &&
-            patchScoping &&
-            issue.forwarded_comment_ids.length > 0
-          ) {
-            // Re-scope after user reply came back green — confirm on GitHub
-            const body = formatReadyComment(issueNumber, patchScoping);
-            postGitHubComment(issueNumber, body).catch(() => {});
-          }
-          break;
-        }
-
-        case "done": {
-          // Enrich PR data from GitHub API if available
-          let finalPatch = result.patch;
-          if (result.patch.pr && current.repo) {
-            try {
-              const prRes = await fetch(
-                `/api/github/pr-details?owner=${encodeURIComponent(current.repo.owner)}&repo=${encodeURIComponent(current.repo.name)}&pr=${result.patch.pr.number}`,
-                { headers: apiKeyHeaders(keysRef.current) },
-              );
-              if (prRes.ok) {
-                const prData = await prRes.json();
-                finalPatch = {
-                  ...finalPatch,
-                  pr: {
-                    ...result.patch.pr,
-                    title: prData.title || result.patch.pr.title,
-                    branch: prData.branch || result.patch.pr.branch,
-                    files_changed: prData.files || [],
-                  },
-                };
-              }
-            } catch {
-              // PR enrichment failure is non-critical
-            }
-          }
-          dispatch({ type: "UPDATE_ISSUE", issueNumber, patch: finalPatch });
-          dispatch({ type: "CLEAR_SESSION" });
-          // Persist enriched PR data to Supabase
-          if (finalPatch.pr && current.repo) {
-            fetch("/api/supabase/sessions", {
-              method: "PATCH",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                repo: `${current.repo.owner}/${current.repo.name}`,
-                issue_number: issueNumber,
-                pr: finalPatch.pr,
-              }),
-            }).catch(() => {});
-          }
-
-          // Outbound: post fix completion comment on GitHub
-          if (finalPatch.pr?.url) {
-            const body = formatDoneComment(
-              issueNumber,
-              finalPatch.pr.url,
-              finalPatch.pr.title || `Fix for #${issueNumber}`,
-            );
-            postGitHubComment(issueNumber, body).catch(() => {});
-          }
-          break;
-        }
-
-        case "blocked": {
-          const wasAlreadyBlocked = issue.status === "blocked";
-          dispatch({ type: "UPDATE_ISSUE", issueNumber, patch: result.patch });
-
-          // Outbound: post blocker comment on GitHub (only for new blockers)
-          if (!wasAlreadyBlocked && result.patch.blocker) {
-            const blocker = result.patch.blocker as BlockerInfo;
-            const body = formatBlockedComment(issueNumber, blocker);
-            const posted = await postGitHubComment(issueNumber, body);
-            if (posted) {
-              dispatch({
-                type: "UPDATE_ISSUE",
-                issueNumber,
-                patch: {
-                  last_devin_comment_id: posted.id,
-                  last_devin_comment_at: posted.created_at,
-                  github_comment_url: posted.html_url,
-                },
-              });
-              if (current.repo) {
-                fetch("/api/supabase/sessions", {
-                  method: "PATCH",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({
-                    repo: `${current.repo.owner}/${current.repo.name}`,
-                    issue_number: issueNumber,
-                    last_devin_comment_id: posted.id,
-                    last_devin_comment_at: posted.created_at,
-                    github_comment_url: posted.html_url,
-                  }),
-                }).catch(() => {});
-              }
-            }
-          }
-
-          // Inbound: poll for GitHub replies on blocked issues
-          if (issue.last_devin_comment_at) {
-            await pollInboundComments(issue, sessionId);
-          }
-
-          scheduleNextPoll("blocked");
-          break;
-        }
-
-        case "continue": {
-          const cont = result as Extract<PollResult, { action: "continue" }>;
-          if (cont.patch) {
-            dispatch({ type: "UPDATE_ISSUE", issueNumber, patch: cont.patch });
-          }
-          scheduleNextPoll(cont.nextPollCategory);
-          break;
-        }
-      }
-    } catch(err) {
-      console.error("Polling error:", err);
-      scheduleNextPoll("default");
-    }
-  };
-
-  // Start/stop polling based on active session
-  useEffect(() => {
-    if (state.mode === "live" && state.activeSession) {
-      const type = state.activeSession.type;
-      scheduleNextPoll(type === "scoping" ? "scoping" : "fixing");
-    }
-    return () => {
-      if (pollingRef.current) clearTimeout(pollingRef.current);
-    };
-  }, [state.mode, state.activeSession, scheduleNextPoll]);
-
-  // Poll for inbound GitHub comments on issues awaiting replies
-  useEffect(() => {
-    if (state.mode !== "live") return;
-
-    const interval = setInterval(async () => {
-      const current = stateRef.current;
-      if (!current.repo) return;
-
-      for (const issue of current.issues) {
-        if (!issue.last_devin_comment_id || !issue.last_devin_comment_at) continue;
-        if (issue.status !== "awaiting_reply" && issue.status !== "scoped") continue;
-
-        const sessionId =
-          issue.scoping_session?.session_id || issue.fix_session?.session_id;
-        if (!sessionId) continue;
-
-        const forwarded = await pollInboundComments(issue, sessionId);
-        if (forwarded) break; // Re-scoping triggered, process one at a time
-      }
-    }, 30_000);
-
-    return () => clearInterval(interval);
-  }, [state.mode, pollInboundComments]);
 
   // --- Action Handlers ---
   const handleStartFix = useCallback(
@@ -1169,7 +710,6 @@ export default function Dashboard({
       }
 
       // Trigger immediate re-poll so updates show quickly
-      if (pollingRef.current) clearTimeout(pollingRef.current);
       const type = stateRef.current.activeSession?.type || (target && target.scoping_session?.session_id === sessionId ? "scoping" : "fixing");
       scheduleNextPoll(type === "scoping" ? "scoping" : "fixing");
     },
@@ -1546,7 +1086,6 @@ Do NOT start implementing the fix — only provide the updated analysis.`;
             issues={filteredIssues}
             expandedIssueId={state.expandedIssueId}
             dispatch={dispatch}
-            mode={state.mode}
             actions={actions}
             lastMainCommitDate={state.lastMainCommitDate}
             activeSession={state.activeSession}

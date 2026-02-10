@@ -8,7 +8,6 @@ interface IssueListProps {
   issues: DashboardIssue[];
   expandedIssueId: number | null;
   dispatch: React.Dispatch<DashboardAction>;
-  mode: "demo" | "live";
   actions: IssueActions;
   lastMainCommitDate: string | null;
   activeSession: DashboardState["activeSession"];
@@ -19,7 +18,6 @@ export default function IssueList({
   issues,
   expandedIssueId,
   dispatch,
-  mode,
   actions,
   lastMainCommitDate,
   activeSession,
@@ -58,8 +56,6 @@ export default function IssueList({
               <div className="overflow-hidden">
                 <IssueDetail
                   issue={issue}
-                  dispatch={dispatch}
-                  mode={mode}
                   actions={actions}
                   lastMainCommitDate={lastMainCommitDate}
                   activeSession={activeSession}
