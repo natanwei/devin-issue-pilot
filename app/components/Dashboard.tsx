@@ -999,7 +999,7 @@ Do NOT start implementing the fix — only provide the updated analysis.`;
   return (
     <div className="min-h-screen bg-page flex flex-col">
       <TopBar
-        repo={repo}
+        repo={state.repo || repo}
         mode={state.mode}
         initialMode={initialMode}
         issues={state.issues}
