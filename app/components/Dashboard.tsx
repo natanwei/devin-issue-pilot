@@ -992,6 +992,7 @@ Do NOT start implementing the fix — only provide the updated analysis.`;
       <TopBar
         repo={repo}
         mode={state.mode}
+        initialMode={initialMode}
         issues={state.issues}
         onDisconnect={onDisconnect}
         onRefresh={fetchIssues}

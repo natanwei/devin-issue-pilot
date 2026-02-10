@@ -6,6 +6,7 @@ import { DashboardIssue } from "@/lib/types";
 interface TopBarProps {
   repo: { owner: string; name: string };
   mode: "demo" | "live";
+  initialMode: "demo" | "live";
   issues: DashboardIssue[];
   onDisconnect: () => void;
   onToggleMode: () => void;
@@ -18,6 +19,7 @@ interface TopBarProps {
 export default function TopBar({
   repo,
   mode,
+  initialMode,
   issues,
   onDisconnect,
   onToggleMode,
@@ -99,28 +101,34 @@ export default function TopBar({
             <span className="absolute -top-0.5 -right-0.5 h-1.5 w-1.5 rounded-full bg-accent-green" />
           )}
         </button>
-        <div className="flex items-center bg-elevated rounded-full p-0.5 gap-0.5 flex-shrink-0">
-          <button
-            onClick={mode === "live" ? onToggleMode : undefined}
-            className={`px-2 py-0.5 rounded-full text-xs font-medium transition-colors ${
-              mode === "demo"
-                ? "bg-dp-card text-text-primary"
-                : "text-text-muted hover:text-text-secondary cursor-pointer"
-            }`}
-          >
+        {initialMode === "demo" ? (
+          <span className="bg-elevated rounded-full px-2.5 py-1 text-xs font-medium text-text-secondary flex-shrink-0">
             Preview
-          </button>
-          <button
-            onClick={mode === "demo" ? onToggleMode : undefined}
-            className={`px-2 py-0.5 rounded-full text-xs font-medium transition-colors ${
-              mode === "live"
-                ? "bg-accent-blue text-white"
-                : "text-text-muted hover:text-text-secondary cursor-pointer"
-            }`}
-          >
-            Live
-          </button>
-        </div>
+          </span>
+        ) : (
+          <div className="flex items-center bg-elevated rounded-full p-0.5 gap-0.5 flex-shrink-0">
+            <button
+              onClick={mode === "live" ? onToggleMode : undefined}
+              className={`px-2 py-0.5 rounded-full text-xs font-medium transition-colors ${
+                mode === "demo"
+                  ? "bg-dp-card text-text-primary"
+                  : "text-text-muted hover:text-text-secondary cursor-pointer"
+              }`}
+            >
+              Preview
+            </button>
+            <button
+              onClick={mode === "demo" ? onToggleMode : undefined}
+              className={`px-2 py-0.5 rounded-full text-xs font-medium transition-colors ${
+                mode === "live"
+                  ? "bg-accent-blue text-white"
+                  : "text-text-muted hover:text-text-secondary cursor-pointer"
+              }`}
+            >
+              Live
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
