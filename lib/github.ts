@@ -227,6 +227,21 @@ export async function listIssueComments(
   }));
 }
 
+export async function createCommentReaction(
+  owner: string,
+  repo: string,
+  commentId: number,
+  githubToken?: string,
+): Promise<void> {
+  const octokit = getOctokit(githubToken);
+  await octokit.reactions.createForIssueComment({
+    owner,
+    repo,
+    comment_id: commentId,
+    content: "eyes",
+  });
+}
+
 export function parsePatch(patch: string): DiffLine[] {
   return patch
     .split("\n")

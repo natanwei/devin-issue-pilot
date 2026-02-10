@@ -15,6 +15,7 @@ import {
   PRInfo,
   StepItem,
   FileInfo,
+  ConversationMessage,
 } from "@/lib/types";
 import {
   CONFIDENCE_SORT_ORDER,
@@ -749,6 +750,19 @@ export default function Dashboard({
                 message: `The user has provided the following clarification to your open questions (via GitHub comment from @${c.user?.login || "unknown"}):\n"${c.body}"\n\nPlease re-analyze the issue with this new information and output an UPDATED JSON analysis wrapped in \`\`\`json fences (same schema). Update your confidence level accordingly.\nDo NOT start implementing the fix — only provide the updated analysis.`,
               }),
             });
+            // Acknowledge receipt with eyes reaction
+            fetch("/api/github/reactions", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                ...apiKeyHeaders(keysRef.current),
+              },
+              body: JSON.stringify({
+                owner: current.repo!.owner,
+                repo: current.repo!.name,
+                commentId: c.id,
+              }),
+            }).catch(() => {});
             newForwardedIds.push(c.id);
           } catch {
             // Forward failure is non-critical
@@ -767,7 +781,12 @@ export default function Dashboard({
           dispatch({
             type: "UPDATE_ISSUE",
             issueNumber: issue.number,
-            patch: { status: "scoping" as const },
+            patch: {
+              status: "scoping" as const,
+              confidence: null,
+              scoping: null,
+              scoped_at: null,
+            },
           });
           dispatch({
             type: "SET_SESSION",
@@ -1157,11 +1176,23 @@ export default function Dashboard({
 Please re-analyze the issue with this new information and output an UPDATED JSON analysis wrapped in \`\`\`json fences (same schema). Update your confidence level accordingly.
 Do NOT start implementing the fix — only provide the updated analysis.`;
 
-      // 1. Set issue status back to "scoping"
+      // 1. Set issue status back to "scoping" + clear stale data + add user message
+      const optimistic: ConversationMessage = {
+        role: "user",
+        text: message,
+        timestamp: new Date().toISOString(),
+        source: "app",
+      };
       dispatch({
         type: "UPDATE_ISSUE",
         issueNumber: issue.number,
-        patch: { status: "scoping" as const },
+        patch: {
+          status: "scoping" as const,
+          confidence: null,
+          scoping: null,
+          scoped_at: null,
+          messages: [optimistic],
+        },
       });
 
       // 2. Re-establish the active session for polling

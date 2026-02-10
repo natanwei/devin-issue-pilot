@@ -833,14 +833,24 @@ export default function IssueDetail({
         return <TimedOutView issue={issue} actions={actions} />;
       case "aborted":
         return <AbortedView issue={issue} />;
-      case "scoping":
+      case "scoping": {
+        const hasUserMessage = issue.messages?.length > 0 &&
+          issue.messages[issue.messages.length - 1].role === "user";
         return (
-          <div className="flex items-center justify-between w-full">
-            <span className="text-text-muted text-sm italic">
-              Devin is analyzing this issue...
-            </span>
-          </div>
+          <>
+            {issue.messages && issue.messages.length > 0 && (
+              <ConversationThread messages={issue.messages} />
+            )}
+            <div className="flex items-center justify-between w-full">
+              <span className="text-text-muted text-sm italic">
+                {hasUserMessage
+                  ? "Re-analyzing with your input..."
+                  : "Devin is analyzing this issue..."}
+              </span>
+            </div>
+          </>
         );
+      }
       case "pending":
       default:
         return (
