@@ -33,7 +33,9 @@ export async function createScopingSession(params: {
   acuLimit: number;
   devinApiKey?: string;
 }): Promise<CreateSessionResponse> {
-  const prompt = `You are analyzing GitHub issue #${params.issueNumber} from ${params.repo}.
+  const prompt = `IMPORTANT: You are ONLY analyzing this issue — do NOT implement any code changes, do NOT create branches, and do NOT create pull requests. Your ONLY output should be the JSON analysis block described below.
+
+You are analyzing GitHub issue #${params.issueNumber} from ${params.repo}.
 
 **Issue Title**: ${params.issueTitle}
 **Issue Body**: ${params.issueBody}
