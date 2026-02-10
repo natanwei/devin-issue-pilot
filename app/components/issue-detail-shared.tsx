@@ -183,25 +183,13 @@ export function ConfidenceHeader({ issue }: { issue: DashboardIssue }) {
   );
 }
 
-export function SessionStats({ issue }: { issue: DashboardIssue }) {
-  const session = issue.fix_session;
-  if (!session) return null;
-
-  const start = new Date(session.started_at).getTime();
-  const end = issue.fix_session_updated_at
-    ? new Date(issue.fix_session_updated_at).getTime()
-    : session.updated_at
-      ? new Date(session.updated_at).getTime()
-      : Date.now();
-  const durationMs = end - start;
-  const minutes = Math.floor(durationMs / 60000);
-  const seconds = Math.floor((durationMs % 60000) / 1000);
-  const durationStr = `${minutes}m ${seconds.toString().padStart(2, "0")}s`;
+export function SessionStats({ issue, acuLimitFixing }: { issue: DashboardIssue; acuLimitFixing: number }) {
+  if (!issue.fix_session) return null;
 
   return (
     <div className="flex items-center gap-2 text-[13px]">
       <span className="text-text-secondary">
-        Duration: {durationStr} · ACUs: ~{(minutes / 15).toFixed(1)}
+        {acuLimitFixing > 0 ? `Up to ${acuLimitFixing} ACUs` : "No ACU limit"}
       </span>
     </div>
   );

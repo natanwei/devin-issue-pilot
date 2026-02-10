@@ -335,7 +335,7 @@ export function BlockedView({
 
 // --- DoneView ---
 
-export function DoneView({ issue }: { issue: DashboardIssue }) {
+export function DoneView({ issue, acuLimitFixing }: { issue: DashboardIssue; acuLimitFixing: number }) {
   const completedSteps = issue.steps
     .filter((s) => s.status === "done")
     .map((s) => s.label);
@@ -358,7 +358,7 @@ export function DoneView({ issue }: { issue: DashboardIssue }) {
       )}
 
       {/* Session stats */}
-      <SessionStats issue={issue} />
+      <SessionStats issue={issue} acuLimitFixing={acuLimitFixing} />
 
       {/* GitHub comment link */}
       {issue.github_comment_url ? (
@@ -385,9 +385,11 @@ export function DoneView({ issue }: { issue: DashboardIssue }) {
 export function FailedView({
   issue,
   actions,
+  acuLimitFixing,
 }: {
   issue: DashboardIssue;
   actions: IssueActions;
+  acuLimitFixing: number;
 }) {
   // Scope failure: no scoping data means the scoping API call itself failed
   if (!issue.scoping) {
@@ -440,7 +442,7 @@ export function FailedView({
       </div>
 
       {/* Session stats */}
-      <SessionStats issue={issue} />
+      <SessionStats issue={issue} acuLimitFixing={acuLimitFixing} />
 
       {/* Step checklist */}
       <StepChecklist steps={issue.steps} />
@@ -545,7 +547,7 @@ export function TimedOutView({
 
 // --- AbortedView ---
 
-export function AbortedView({ issue }: { issue: DashboardIssue }) {
+export function AbortedView({ issue, acuLimitFixing }: { issue: DashboardIssue; acuLimitFixing: number }) {
   const completedSteps = issue.steps.filter((s) => s.status === "done");
 
   return (
@@ -556,7 +558,7 @@ export function AbortedView({ issue }: { issue: DashboardIssue }) {
 
       {completedSteps.length > 0 && <StepChecklist steps={issue.steps} />}
 
-      <SessionStats issue={issue} />
+      <SessionStats issue={issue} acuLimitFixing={acuLimitFixing} />
     </>
   );
 }

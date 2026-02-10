@@ -78,13 +78,13 @@ export default function IssueDetail({
         return <BlockedView issue={issue} actions={actions} />;
       case "done":
       case "pr_open":
-        return <DoneView issue={issue} />;
+        return <DoneView issue={issue} acuLimitFixing={acuLimitFixing} />;
       case "failed":
-        return <FailedView issue={issue} actions={actions} />;
+        return <FailedView issue={issue} actions={actions} acuLimitFixing={acuLimitFixing} />;
       case "timed_out":
         return <TimedOutView issue={issue} actions={actions} />;
       case "aborted":
-        return <AbortedView issue={issue} />;
+        return <AbortedView issue={issue} acuLimitFixing={acuLimitFixing} />;
       case "scoping": {
         const hasUserMessage = issue.messages?.length > 0 &&
           issue.messages[issue.messages.length - 1].role === "user";
