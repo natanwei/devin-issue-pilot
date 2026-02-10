@@ -972,14 +972,6 @@ export default function Dashboard({
 
         case "continue": {
           const cont = result as Extract<PollResult, { action: "continue" }>;
-          // Inbound: also poll for replies during awaiting_reply
-          if (issue.status === "awaiting_reply" && issue.last_devin_comment_at) {
-            const activeSessionId =
-              issue.fix_session?.session_id || issue.scoping_session?.session_id;
-            if (activeSessionId) {
-              await pollInboundComments(issue, activeSessionId);
-            }
-          }
           if (cont.patch) {
             dispatch({ type: "UPDATE_ISSUE", issueNumber, patch: cont.patch });
           }
@@ -1003,6 +995,29 @@ export default function Dashboard({
       if (pollingRef.current) clearTimeout(pollingRef.current);
     };
   }, [state.mode, state.activeSession, scheduleNextPoll]);
+
+  // Poll for inbound GitHub comments on issues awaiting replies
+  useEffect(() => {
+    if (state.mode !== "live") return;
+
+    const interval = setInterval(async () => {
+      const current = stateRef.current;
+      if (!current.repo) return;
+
+      for (const issue of current.issues) {
+        if (!issue.last_devin_comment_id || !issue.last_devin_comment_at) continue;
+        if (issue.status !== "awaiting_reply" && issue.status !== "scoped") continue;
+
+        const sessionId =
+          issue.scoping_session?.session_id || issue.fix_session?.session_id;
+        if (!sessionId) continue;
+
+        await pollInboundComments(issue, sessionId);
+      }
+    }, 30_000);
+
+    return () => clearInterval(interval);
+  }, [state.mode, pollInboundComments]);
 
   // --- Action Handlers ---
   const handleStartFix = useCallback(

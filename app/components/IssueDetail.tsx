@@ -10,7 +10,7 @@ import PRCard, { FilesChanged, StepsCompleted } from "./PRCard";
 import DiffSnippet from "./DiffSnippet";
 import {
   ExternalLink,
-  MessageCircle,
+
   Clock,
   XCircle,
   Timer,
@@ -279,6 +279,25 @@ function ScopedView({
           </button>
         </div>
       )}
+      {issue.last_devin_comment_id && (
+        <div
+          className="flex items-center justify-between bg-[#1a1a1a] px-4 py-3 rounded-md"
+          style={{ borderLeft: "3px solid #f59e0b" }}
+        >
+          <span className="text-text-secondary text-sm">
+            Questions posted on GitHub — waiting for reply
+          </span>
+          <a
+            href={issue.github_comment_url || issue.github_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-1.5 text-accent-blue text-sm font-medium hover:opacity-80"
+          >
+            <ExternalLink className="h-3.5 w-3.5" />
+            View comment →
+          </a>
+        </div>
+      )}
       <DetailGrid issue={issue} />
 
       {(isYellow || isRed) && questions.length > 0 && (
@@ -341,89 +360,6 @@ function ScopedView({
       </div>
     </>
   );
-}
-
-function AwaitingReplyView({
-  issue,
-  actions,
-}: {
-  issue: DashboardIssue;
-  actions: IssueActions;
-}) {
-  const questions = issue.scoping?.open_questions || [];
-  const sessionId =
-    issue.fix_session?.session_id || issue.scoping_session?.session_id;
-  const commentUrl = issue.github_comment_url || issue.github_url;
-
-  const commentedAt = issue.last_devin_comment_at
-    ? new Date(issue.last_devin_comment_at)
-    : null;
-  const agoText = commentedAt
-    ? formatTimeAgo(commentedAt)
-    : null;
-
-  return (
-    <>
-      {/* Centered content */}
-      <div className="flex flex-col items-center gap-3 py-6">
-        <MessageCircle className="h-7 w-7 text-accent-amber" />
-        <span className="text-text-primary text-base">
-          Devin asked a question on this issue
-        </span>
-        <span className="text-text-secondary text-sm">
-          Waiting for a reply on GitHub before proceeding
-        </span>
-        <a
-          href={commentUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex items-center gap-1.5 border border-accent-blue text-accent-blue text-[13px] font-medium rounded-md px-4 py-1.5 hover:bg-accent-blue/10 transition-colors"
-        >
-          <ExternalLink className="h-3.5 w-3.5" />
-          View on GitHub →
-        </a>
-        {agoText && (
-          <div className="flex items-center gap-1.5 text-text-muted text-xs">
-            <Clock className="h-3 w-3" />
-            <span>Asked {agoText}</span>
-          </div>
-        )}
-      </div>
-
-      {/* Quote block */}
-      {questions.length > 0 && (
-        <div
-          className="bg-[#1a1a1a] p-4 flex flex-col gap-2"
-          style={{ borderLeft: "3px solid #262626" }}
-        >
-          {questions.map((q, i) => (
-            <p key={i} className="text-text-secondary text-sm italic leading-relaxed">
-              {i + 1}. {q}
-            </p>
-          ))}
-        </div>
-      )}
-
-      <MessageInput
-        color="amber"
-        onSend={async (msg) => {
-          if (!sessionId) throw new Error("No active session");
-          await actions.onSendMessage(sessionId, msg);
-        }}
-      />
-    </>
-  );
-}
-
-function formatTimeAgo(date: Date): string {
-  const diffMs = Date.now() - date.getTime();
-  const minutes = Math.floor(diffMs / 60_000);
-  if (minutes < 1) return "just now";
-  if (minutes < 60) return `${minutes}m ago`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.floor(hours / 24);
-  return `${days}d ago`;
 }
 
 function FixingView({
@@ -875,7 +811,7 @@ export default function IssueDetail({
       case "scoped":
         return <ScopedView issue={issue} actions={actions} lastMainCommitDate={lastMainCommitDate} />;
       case "awaiting_reply":
-        return <AwaitingReplyView issue={issue} actions={actions} />;
+        return <ScopedView issue={issue} actions={actions} lastMainCommitDate={lastMainCommitDate} />;
       case "fixing":
         return <FixingView issue={issue} actions={actions} />;
       case "blocked":
