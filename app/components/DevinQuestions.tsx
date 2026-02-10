@@ -6,6 +6,7 @@ interface DevinQuestionsProps {
   questions: string[];
   color: "amber" | "red";
   githubUrl?: string;
+  githubCommentUrl?: string | null;
 }
 
 const colorMap = {
@@ -23,6 +24,7 @@ export default function DevinQuestions({
   questions,
   color,
   githubUrl,
+  githubCommentUrl,
 }: DevinQuestionsProps) {
   const colors = colorMap[color];
 
@@ -47,15 +49,15 @@ export default function DevinQuestions({
           {i + 1}. {q}
         </p>
       ))}
-      {githubUrl && (
+      {(githubCommentUrl || githubUrl) && (
         <a
-          href={githubUrl}
+          href={githubCommentUrl || githubUrl}
           target="_blank"
           rel="noopener noreferrer"
           className="flex items-center gap-1.5 text-accent-blue text-[13px] mt-1"
         >
           <ExternalLink className="h-3 w-3" />
-          Posted on GitHub issue →
+          {githubCommentUrl ? "Posted on GitHub issue \u2192" : "View on GitHub \u2192"}
         </a>
       )}
     </div>

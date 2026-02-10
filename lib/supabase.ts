@@ -29,6 +29,10 @@ export interface IssueSessionRow {
   scoped_at?: string | null;
   fix_started_at?: string | null;
   completed_at?: string | null;
+  last_devin_comment_id?: number | null;
+  last_devin_comment_at?: string | null;
+  github_comment_url?: string | null;
+  forwarded_comment_ids?: number[];
 }
 
 /** Upsert a session row — creates if new, merges if existing */

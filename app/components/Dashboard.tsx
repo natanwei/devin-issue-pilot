@@ -26,6 +26,12 @@ import {
 import { interpretPollResult } from "@/lib/parsers";
 import { useApiKeys, apiKeyHeaders } from "@/lib/api-keys";
 import { getDemoIssues } from "@/lib/demo-data";
+import {
+  formatScopingComment,
+  formatBlockedComment,
+  formatDoneComment,
+  isDevinComment,
+} from "@/lib/comment-templates";
 import TopBar from "./TopBar";
 import FilterBar from "./FilterBar";
 import IssueList from "./IssueList";
@@ -280,13 +286,17 @@ export default function Dashboard({
           steps: [],
           scoping_session: null,
           fix_session: null,
+          last_devin_comment_id: null,
+          last_devin_comment_at: null,
+          github_comment_url: null,
+          forwarded_comment_ids: [],
           scoped_at: null,
           fix_started_at: null,
           completed_at: null,
         })
       );
 
-      // Hydrate from Supabase (merge persisted session data onto fresh GitHub issues)
+      // Hydrate from Supabase(merge persisted session data onto fresh GitHub issues)
       try {
         const sessionsRes = await fetch(
           `/api/supabase/sessions?repo=${encodeURIComponent(`${owner}/${name}`)}`
@@ -314,6 +324,10 @@ export default function Dashboard({
                 pr: (p.pr as PRInfo) || null,
                 steps: (p.steps as StepItem[]) || [],
                 files_info: (p.files_info as FileInfo[]) || [],
+                last_devin_comment_id: p.last_devin_comment_id ?? null,
+                last_devin_comment_at: p.last_devin_comment_at ?? null,
+                github_comment_url: p.github_comment_url ?? null,
+                forwarded_comment_ids: (p.forwarded_comment_ids as number[]) || [],
                 scoped_at: p.scoped_at || null,
                 fix_started_at: p.fix_started_at || null,
                 completed_at: p.completed_at || null,
@@ -321,7 +335,7 @@ export default function Dashboard({
             }
           }
 
-          // Fetch closed issues that exist in Supabase but not in GitHub (open) list
+          // Fetch closed issuesthat exist in Supabase but not in GitHub (open) list
           const matchedNumbers = new Set(issues.map((i) => i.number));
           const missingSessions = sessions.filter(
             (s) => !matchedNumbers.has(s.issue_number)
@@ -353,6 +367,10 @@ export default function Dashboard({
                   pr: (s.pr as PRInfo) || null,
                   steps: (s.steps as StepItem[]) || [],
                   files_info: (s.files_info as FileInfo[]) || [],
+                  last_devin_comment_id: s.last_devin_comment_id ?? null,
+                  last_devin_comment_at: s.last_devin_comment_at ?? null,
+                  github_comment_url: s.github_comment_url ?? null,
+                  forwarded_comment_ids: (s.forwarded_comment_ids as number[]) || [],
                   scoped_at: s.scoped_at || null,
                   fix_started_at: s.fix_started_at || null,
                   completed_at: s.completed_at || null,
@@ -573,6 +591,10 @@ export default function Dashboard({
           steps: [],
           scoping_session: null,
           fix_session: null,
+          last_devin_comment_id: null,
+          last_devin_comment_at: null,
+          github_comment_url: null,
+          forwarded_comment_ids: [],
           scoped_at: null,
           fix_started_at: null,
           completed_at: null,
@@ -613,6 +635,107 @@ export default function Dashboard({
     if (pollingRef.current) clearTimeout(pollingRef.current);
     pollingRef.current = setTimeout(() => pollSessionRef.current(), getPollingInterval(status));
   }, []);
+
+  // --- GitHub Comment Bridge helpers ---
+  const postGitHubComment = useCallback(
+    async (
+      issueNumber: number,
+      commentBody: string,
+    ): Promise<{ id: number; created_at: string; html_url: string } | null> => {
+      const current = stateRef.current;
+      if (!current.repo) return null;
+      try {
+        const res = await fetch("/api/github/comments", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            ...apiKeyHeaders(keysRef.current),
+          },
+          body: JSON.stringify({
+            owner: current.repo.owner,
+            repo: current.repo.name,
+            issueNumber,
+            comment: commentBody,
+          }),
+        });
+        if (!res.ok) {
+          if (res.status === 403) {
+            console.warn("GitHub comments disabled — token missing write access");
+            return null;
+          }
+          return null;
+        }
+        return await res.json();
+      } catch {
+        return null;
+      }
+    },
+    [],
+  );
+
+  const pollInboundComments = useCallback(
+    async (issue: DashboardIssue, sessionId: string) => {
+      const current = stateRef.current;
+      if (!current.repo || !issue.last_devin_comment_at) return;
+      try {
+        const res = await fetch(
+          `/api/github/comments?owner=${encodeURIComponent(current.repo.owner)}&repo=${encodeURIComponent(current.repo.name)}&issueNumber=${issue.number}&since=${encodeURIComponent(issue.last_devin_comment_at)}`,
+          { headers: apiKeyHeaders(keysRef.current) },
+        );
+        if (!res.ok) return;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const comments: any[] = await res.json();
+
+        const alreadyForwarded = new Set(issue.forwarded_comment_ids);
+        const newForwardedIds: number[] = [];
+
+        for (const c of comments) {
+          if (alreadyForwarded.has(c.id)) continue;
+          if (isDevinComment(c.body)) continue;
+
+          try {
+            await fetch("/api/devin/message", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                ...apiKeyHeaders(keysRef.current),
+              },
+              body: JSON.stringify({
+                sessionId,
+                message: `[GitHub reply from @${c.user?.login || "unknown"}]: ${c.body}`,
+              }),
+            });
+            newForwardedIds.push(c.id);
+          } catch {
+            // Forward failure is non-critical
+          }
+        }
+
+        if (newForwardedIds.length > 0) {
+          const updatedIds = [...issue.forwarded_comment_ids, ...newForwardedIds];
+          dispatch({
+            type: "UPDATE_ISSUE",
+            issueNumber: issue.number,
+            patch: { forwarded_comment_ids: updatedIds },
+          });
+          if (current.repo) {
+            fetch("/api/supabase/sessions", {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                repo: `${current.repo.owner}/${current.repo.name}`,
+                issue_number: issue.number,
+                forwarded_comment_ids: updatedIds,
+              }),
+            }).catch(() => {});
+          }
+        }
+      } catch {
+        // Inbound comment polling failure is non-critical
+      }
+    },
+    [],
+  );
 
   const pollSessionRef = useRef(async () => {});
   pollSessionRef.current = async () => {
@@ -658,11 +781,55 @@ export default function Dashboard({
 
       switch (result.action) {
         case "timed_out":
-        case "scoped":
         case "failed":
           dispatch({ type: "UPDATE_ISSUE", issueNumber, patch: result.patch });
           dispatch({ type: "CLEAR_SESSION" });
           break;
+
+        case "scoped": {
+          dispatch({ type: "UPDATE_ISSUE", issueNumber, patch: result.patch });
+          dispatch({ type: "CLEAR_SESSION" });
+
+          // Outbound: post scoping questions on GitHub for yellow/red
+          const patchConf = result.patch.confidence;
+          const patchScoping = result.patch.scoping;
+          if (
+            patchScoping &&
+            (patchConf === "yellow" || patchConf === "red") &&
+            patchScoping.open_questions.length > 0 &&
+            !issue.last_devin_comment_id
+          ) {
+            const body = formatScopingComment(issueNumber, patchScoping);
+            const posted = await postGitHubComment(issueNumber, body);
+            if (posted) {
+              dispatch({
+                type: "UPDATE_ISSUE",
+                issueNumber,
+                patch: {
+                  status: "awaiting_reply",
+                  last_devin_comment_id: posted.id,
+                  last_devin_comment_at: posted.created_at,
+                  github_comment_url: posted.html_url,
+                },
+              });
+              if (current.repo) {
+                fetch("/api/supabase/sessions", {
+                  method: "PATCH",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    repo: `${current.repo.owner}/${current.repo.name}`,
+                    issue_number: issueNumber,
+                    status: "awaiting_reply",
+                    last_devin_comment_id: posted.id,
+                    last_devin_comment_at: posted.created_at,
+                    github_comment_url: posted.html_url,
+                  }),
+                }).catch(() => {});
+              }
+            }
+          }
+          break;
+        }
 
         case "done": {
           // Enrich PR data from GitHub API if available
@@ -703,15 +870,71 @@ export default function Dashboard({
               }),
             }).catch(() => {});
           }
+
+          // Outbound: post fix completion comment on GitHub
+          if (finalPatch.pr?.url) {
+            const body = formatDoneComment(
+              issueNumber,
+              finalPatch.pr.url,
+              finalPatch.pr.title || `Fix for #${issueNumber}`,
+            );
+            postGitHubComment(issueNumber, body).catch(() => {});
+          }
           break;
         }
 
-        case "blocked":
+        case "blocked": {
+          const wasAlreadyBlocked = issue.status === "blocked";
           dispatch({ type: "UPDATE_ISSUE", issueNumber, patch: result.patch });
+
+          // Outbound: post blocker comment on GitHub (only for new blockers)
+          if (!wasAlreadyBlocked && result.patch.blocker) {
+            const body = formatBlockedComment(issueNumber, result.patch.blocker as import("@/lib/types").BlockerInfo);
+            const posted = await postGitHubComment(issueNumber, body);
+            if (posted) {
+              dispatch({
+                type: "UPDATE_ISSUE",
+                issueNumber,
+                patch: {
+                  last_devin_comment_id: posted.id,
+                  last_devin_comment_at: posted.created_at,
+                  github_comment_url: posted.html_url,
+                },
+              });
+              if (current.repo) {
+                fetch("/api/supabase/sessions", {
+                  method: "PATCH",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    repo: `${current.repo.owner}/${current.repo.name}`,
+                    issue_number: issueNumber,
+                    last_devin_comment_id: posted.id,
+                    last_devin_comment_at: posted.created_at,
+                    github_comment_url: posted.html_url,
+                  }),
+                }).catch(() => {});
+              }
+            }
+          }
+
+          // Inbound: poll for GitHub replies on blocked issues
+          if (issue.last_devin_comment_at) {
+            await pollInboundComments(issue, sessionId);
+          }
+
           scheduleNextPoll("blocked");
           break;
+        }
 
         case "continue":
+          // Inbound: also poll for replies during awaiting_reply
+          if (issue.status === "awaiting_reply" && issue.last_devin_comment_at) {
+            const activeSessionId =
+              issue.fix_session?.session_id || issue.scoping_session?.session_id;
+            if (activeSessionId) {
+              await pollInboundComments(issue, activeSessionId);
+            }
+          }
           scheduleNextPoll(result.nextPollCategory);
           break;
       }

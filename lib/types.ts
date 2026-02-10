@@ -124,6 +124,12 @@ export interface DashboardIssue {
   scoping_session: SessionInfo | null;
   fix_session: SessionInfo | null;
 
+  // Comment tracking (GitHub comment bridge)
+  last_devin_comment_id: number | null;
+  last_devin_comment_at: string | null;
+  github_comment_url: string | null;
+  forwarded_comment_ids: number[];
+
   // Timestamps
   scoped_at: string | null;
   fix_started_at: string | null;

@@ -256,6 +256,7 @@ function ScopedView({
           questions={questions}
           color={isRed ? "red" : "amber"}
           githubUrl={issue.github_url}
+          githubCommentUrl={issue.github_comment_url}
         />
       )}
 
@@ -289,13 +290,13 @@ function ScopedView({
         <div className="flex items-center gap-4">
           {(isYellow || isRed) && (
             <a
-              href={issue.github_url}
+              href={issue.github_comment_url || issue.github_url}
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-1.5 text-accent-blue text-xs"
             >
               <ExternalLink className="h-3 w-3" />
-              Answer on GitHub →
+              {issue.github_comment_url ? "Answer on GitHub →" : "View on GitHub →"}
             </a>
           )}
           {!isRed && (
@@ -316,10 +317,17 @@ function AwaitingReplyView({
   issue: DashboardIssue;
   actions: IssueActions;
 }) {
-  const question =
-    issue.scoping?.open_questions?.[0] || "Waiting for response...";
+  const questions = issue.scoping?.open_questions || [];
   const sessionId =
     issue.fix_session?.session_id || issue.scoping_session?.session_id;
+  const commentUrl = issue.github_comment_url || issue.github_url;
+
+  const commentedAt = issue.last_devin_comment_at
+    ? new Date(issue.last_devin_comment_at)
+    : null;
+  const agoText = commentedAt
+    ? formatTimeAgo(commentedAt)
+    : null;
 
   return (
     <>
@@ -333,7 +341,7 @@ function AwaitingReplyView({
           Waiting for a reply on GitHub before proceeding
         </span>
         <a
-          href={issue.github_url}
+          href={commentUrl}
           target="_blank"
           rel="noopener noreferrer"
           className="inline-flex items-center gap-1.5 border border-accent-blue text-accent-blue text-[13px] font-medium rounded-md px-4 py-1.5 hover:bg-accent-blue/10 transition-colors"
@@ -341,21 +349,27 @@ function AwaitingReplyView({
           <ExternalLink className="h-3.5 w-3.5" />
           View on GitHub →
         </a>
-        <div className="flex items-center gap-1.5 text-text-muted text-xs">
-          <Clock className="h-3 w-3" />
-          <span>Asked 2 hours ago</span>
-        </div>
+        {agoText && (
+          <div className="flex items-center gap-1.5 text-text-muted text-xs">
+            <Clock className="h-3 w-3" />
+            <span>Asked {agoText}</span>
+          </div>
+        )}
       </div>
 
       {/* Quote block */}
-      <div
-        className="bg-[#1a1a1a] p-4"
-        style={{ borderLeft: "3px solid #262626" }}
-      >
-        <p className="text-text-secondary text-sm italic leading-relaxed">
-          {question}
-        </p>
-      </div>
+      {questions.length > 0 && (
+        <div
+          className="bg-[#1a1a1a] p-4 flex flex-col gap-2"
+          style={{ borderLeft: "3px solid #262626" }}
+        >
+          {questions.map((q, i) => (
+            <p key={i} className="text-text-secondary text-sm italic leading-relaxed">
+              {i + 1}. {q}
+            </p>
+          ))}
+        </div>
+      )}
 
       <MessageInput
         color="amber"
@@ -366,6 +380,17 @@ function AwaitingReplyView({
       />
     </>
   );
+}
+
+function formatTimeAgo(date: Date): string {
+  const diffMs = Date.now() - date.getTime();
+  const minutes = Math.floor(diffMs / 60_000);
+  if (minutes < 1) return "just now";
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  return `${days}d ago`;
 }
 
 function FixingView({
@@ -583,9 +608,21 @@ function DoneView({ issue }: { issue: DashboardIssue }) {
       <SessionStats issue={issue} />
 
       {/* GitHub comment link */}
-      <span className="text-text-muted text-xs">
-        Comment posted on GitHub issue #{issue.number} →
-      </span>
+      {issue.github_comment_url ? (
+        <a
+          href={issue.github_comment_url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center gap-1.5 text-accent-blue text-xs"
+        >
+          <ExternalLink className="h-3 w-3" />
+          Comment posted on GitHub issue #{issue.number} →
+        </a>
+      ) : (
+        <span className="text-text-muted text-xs">
+          Comment posted on GitHub issue #{issue.number} →
+        </span>
+      )}
     </>
   );
 }
