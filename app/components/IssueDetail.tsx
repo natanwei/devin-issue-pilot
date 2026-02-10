@@ -203,7 +203,7 @@ function SessionStats({ issue }: { issue: DashboardIssue }) {
   return (
     <div className="flex items-center gap-2 text-[13px]">
       <span className="text-text-secondary">
-        Duration: {durationStr} · ACUs: {(minutes * 0.7 + 0.5).toFixed(1)} · Tests: All green ✓
+        Duration: {durationStr} · ACUs: ~{(minutes / 15).toFixed(1)} · Tests: All green ✓
       </span>
     </div>
   );
