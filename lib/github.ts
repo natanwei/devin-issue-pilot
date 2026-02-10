@@ -243,16 +243,39 @@ export async function createCommentReaction(
 }
 
 export function parsePatch(patch: string): DiffLine[] {
-  return patch
-    .split("\n")
-    .filter((line) => !line.startsWith("@@") && !line.startsWith("diff ") && !line.startsWith("index "))
-    .map((line) => {
-      if (line.startsWith("+") && !line.startsWith("+++")) {
-        return { type: "add" as const, content: line };
-      }
-      if (line.startsWith("-") && !line.startsWith("---")) {
-        return { type: "remove" as const, content: line };
-      }
-      return { type: "context" as const, content: line };
-    });
+  const lines = patch.split("\n");
+  const result: DiffLine[] = [];
+  let oldLine = 1;
+  let newLine = 1;
+
+  for (const line of lines) {
+    // Parse hunk header to reset line counters
+    const hunkMatch = line.match(/^@@ -(\d+)(?:,\d+)? \+(\d+)(?:,\d+)? @@/);
+    if (hunkMatch) {
+      oldLine = parseInt(hunkMatch[1], 10);
+      newLine = parseInt(hunkMatch[2], 10);
+      continue;
+    }
+
+    // Skip diff/index/file headers
+    if (line.startsWith("diff ") || line.startsWith("index ") ||
+        line.startsWith("---") || line.startsWith("+++")) {
+      continue;
+    }
+
+    if (line.startsWith("+")) {
+      result.push({ type: "add", content: line.slice(1), newLine });
+      newLine++;
+    } else if (line.startsWith("-")) {
+      result.push({ type: "remove", content: line.slice(1), oldLine });
+      oldLine++;
+    } else {
+      // Context line (leading space) or empty
+      result.push({ type: "context", content: line.startsWith(" ") ? line.slice(1) : line, oldLine, newLine });
+      oldLine++;
+      newLine++;
+    }
+  }
+
+  return result;
 }

@@ -80,6 +80,8 @@ export interface ConversationMessage {
 export interface DiffLine {
   type: "add" | "remove" | "context";
   content: string;
+  oldLine?: number;
+  newLine?: number;
 }
 
 export interface PRFileChange {

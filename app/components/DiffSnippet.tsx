@@ -82,13 +82,24 @@ export default function DiffSnippet({ files }: DiffSnippetProps) {
             prefix = "+";
           }
 
+          // Show newLine for add/context, oldLine for remove, fallback to sequential
+          const lineNum =
+            line.type === "remove"
+              ? (line.oldLine ?? i + 1)
+              : (line.newLine ?? i + 1);
+
           return (
             <div
               key={i}
-              className={`${bg} ${color} font-mono text-[11px] px-3 py-[3px] whitespace-pre`}
+              className={`${bg} flex font-mono text-[11px] py-[3px] whitespace-pre`}
               style={{ fontFamily: "'JetBrains Mono', monospace" }}
             >
-              {prefix} {line.content}
+              <span className="w-8 shrink-0 text-right pr-2 text-[#484f58] text-[10px] select-none border-r border-[#30363d]/50">
+                {lineNum}
+              </span>
+              <span className={`${color} pl-2`}>
+                {prefix} {line.content}
+              </span>
             </div>
           );
         })}
