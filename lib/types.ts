@@ -105,6 +105,7 @@ export interface SessionInfo {
   session_url: string; // Only from POST /sessions — must store at creation
   started_at: string;
   updated_at?: string;
+  acu_limit?: number;
 }
 
 // --- Main enriched issue type ---

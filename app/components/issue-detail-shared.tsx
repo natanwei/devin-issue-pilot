@@ -184,12 +184,12 @@ export function ConfidenceHeader({ issue }: { issue: DashboardIssue }) {
 }
 
 export function SessionStats({ issue, acuLimitFixing }: { issue: DashboardIssue; acuLimitFixing: number }) {
-  if (!issue.fix_session) return null;
+  const acuLimit = issue.fix_session?.acu_limit ?? acuLimitFixing;
 
   return (
     <div className="flex items-center gap-2 text-[13px]">
       <span className="text-text-secondary">
-        {acuLimitFixing > 0 ? `Up to ${acuLimitFixing} ACUs` : "No ACU limit"}
+        {acuLimit > 0 ? `Up to ${acuLimit} ACUs` : "No ACU limit"}
       </span>
     </div>
   );

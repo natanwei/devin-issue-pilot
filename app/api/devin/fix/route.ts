@@ -47,6 +47,7 @@ export async function POST(req: NextRequest) {
         session_id: result.session_id,
         session_url: result.url,
         started_at: new Date().toISOString(),
+        acu_limit: acuLimit ?? 15,
       },
       fix_started_at: new Date().toISOString(),
     }).catch(() => {});

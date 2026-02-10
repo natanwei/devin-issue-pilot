@@ -658,6 +658,7 @@ export default function Dashboard({
               session_id: data.sessionId,
               session_url: data.sessionUrl,
               started_at: new Date().toISOString(),
+              acu_limit: keysRef.current.acuLimitFixing,
             },
           },
         });
