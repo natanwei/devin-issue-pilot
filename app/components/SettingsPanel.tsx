@@ -24,6 +24,8 @@ export default function SettingsPanel({
   const [showDevin, setShowDevin] = useState(false);
   const [showGithub, setShowGithub] = useState(false);
   const [guideOpen, setGuideOpen] = useState(false);
+  const [scopingAcu, setScopingAcu] = useState(keys.acuLimitScoping);
+  const [fixingAcu, setFixingAcu] = useState(keys.acuLimitFixing);
 
   if (!open) return null;
 
@@ -35,6 +37,8 @@ export default function SettingsPanel({
     const updates: Partial<ApiKeys> = {};
     if (devinDraft.trim()) updates.devinApiKey = devinDraft.trim();
     if (githubDraft.trim()) updates.githubToken = githubDraft.trim();
+    if (scopingAcu !== keys.acuLimitScoping) updates.acuLimitScoping = scopingAcu;
+    if (fixingAcu !== keys.acuLimitFixing) updates.acuLimitFixing = fixingAcu;
 
     if (Object.keys(updates).length === 0) {
       onClose();
@@ -51,6 +55,8 @@ export default function SettingsPanel({
     onClear();
     setDevinDraft("");
     setGithubDraft("");
+    setScopingAcu(3);
+    setFixingAcu(15);
   }
 
   return (
@@ -235,6 +241,77 @@ export default function SettingsPanel({
                 )}
               </button>
             </div>
+          )}
+        </div>
+
+        {/* ACU Limits */}
+        <div className="flex flex-col gap-3">
+          <div className="flex flex-col">
+            <span className="text-text-secondary text-sm font-medium">
+              ACU Limits
+            </span>
+            <span className="text-text-muted text-xs">
+              Max compute credits per session
+            </span>
+          </div>
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center justify-between">
+              <label className="text-text-secondary text-sm">Scoping</label>
+              <div className="flex items-center gap-2">
+                {scopingAcu > 0 && (
+                  <input
+                    type="number"
+                    min={1}
+                    max={50}
+                    value={scopingAcu}
+                    onChange={(e) => setScopingAcu(Math.max(1, parseInt(e.target.value, 10) || 1))}
+                    className="w-16 bg-elevated border border-border-subtle rounded-md px-2 py-1.5 text-sm text-text-primary text-center focus:outline-none focus:border-accent-blue transition-colors"
+                  />
+                )}
+                <button
+                  type="button"
+                  onClick={() => setScopingAcu(scopingAcu === 0 ? (keys.acuLimitScoping || 3) : 0)}
+                  className={`text-xs px-2 py-1 rounded-md transition-colors ${
+                    scopingAcu === 0
+                      ? "bg-accent-blue/20 text-accent-blue"
+                      : "text-text-muted hover:text-text-secondary"
+                  }`}
+                >
+                  No limit
+                </button>
+              </div>
+            </div>
+            <div className="flex items-center justify-between">
+              <label className="text-text-secondary text-sm">Fixing</label>
+              <div className="flex items-center gap-2">
+                {fixingAcu > 0 && (
+                  <input
+                    type="number"
+                    min={1}
+                    max={100}
+                    value={fixingAcu}
+                    onChange={(e) => setFixingAcu(Math.max(1, parseInt(e.target.value, 10) || 1))}
+                    className="w-16 bg-elevated border border-border-subtle rounded-md px-2 py-1.5 text-sm text-text-primary text-center focus:outline-none focus:border-accent-blue transition-colors"
+                  />
+                )}
+                <button
+                  type="button"
+                  onClick={() => setFixingAcu(fixingAcu === 0 ? (keys.acuLimitFixing || 15) : 0)}
+                  className={`text-xs px-2 py-1 rounded-md transition-colors ${
+                    fixingAcu === 0
+                      ? "bg-accent-blue/20 text-accent-blue"
+                      : "text-text-muted hover:text-text-secondary"
+                  }`}
+                >
+                  No limit
+                </button>
+              </div>
+            </div>
+          </div>
+          {(scopingAcu === 0 || fixingAcu === 0) && (
+            <p className="text-accent-amber text-xs">
+              Removing limits is not recommended — sessions may consume unexpected ACUs.
+            </p>
           )}
         </div>
 

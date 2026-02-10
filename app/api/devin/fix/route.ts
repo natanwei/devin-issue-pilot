@@ -32,7 +32,7 @@ export async function POST(req: NextRequest) {
       issueBody: issueBody || "",
       issueNumber,
       repo,
-      acuLimit: acuLimit || 15,
+      acuLimit: acuLimit ?? 15,
       devinApiKey,
       scopingResult,
       previousContext: previousContext || undefined,

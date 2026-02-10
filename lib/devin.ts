@@ -82,7 +82,7 @@ FOLLOW-UP HANDLING: If you receive follow-up messages from the user answering yo
     body: JSON.stringify({
       prompt,
       idempotent: true,
-      max_acu_limit: params.acuLimit,
+      ...(params.acuLimit > 0 && { max_acu_limit: params.acuLimit }),
       tags: [`scope-${params.repo}-${params.issueNumber}`],
       title: `Scope: ${params.repo}#${params.issueNumber} — ${params.issueTitle}`,
     }),
@@ -162,7 +162,7 @@ ${(params.scopingResult.risks ?? []).length > 0 ? params.scopingResult.risks!.ma
     body: JSON.stringify({
       prompt,
       idempotent: true,
-      max_acu_limit: params.acuLimit,
+      ...(params.acuLimit > 0 && { max_acu_limit: params.acuLimit }),
       tags: [tag],
       title: `Fix: ${params.repo}#${params.issueNumber} — ${params.issueTitle}`,
     }),

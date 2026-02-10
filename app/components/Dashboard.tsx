@@ -19,7 +19,6 @@ import {
 import {
   CONFIDENCE_SORT_ORDER,
   POLLING_INTERVALS,
-  ACU_LIMITS,
   ISSUE_REFRESH_INTERVAL,
 } from "@/lib/constants";
 import { interpretPollResult } from "@/lib/parsers";
@@ -528,7 +527,7 @@ export default function Dashboard({
           issueBody: issue.body,
           issueNumber: issue.number,
           repo: `${stateRef.current.repo.owner}/${stateRef.current.repo.name}`,
-          acuLimit: ACU_LIMITS.scoping,
+          acuLimit: keysRef.current.acuLimitScoping,
         }),
       });
 
@@ -1054,7 +1053,7 @@ export default function Dashboard({
             issueBody: issue.body,
             issueNumber: issue.number,
             repo: `${state.repo.owner}/${state.repo.name}`,
-            acuLimit: ACU_LIMITS.fixing,
+            acuLimit: keysRef.current.acuLimitFixing,
             scopingResult: issue.scoping,
             previousContext,
           }),
@@ -1462,6 +1461,7 @@ Do NOT start implementing the fix — only provide the updated analysis.`;
             actions={actions}
             lastMainCommitDate={state.lastMainCommitDate}
             activeSession={state.activeSession}
+            acuLimitFixing={keys.acuLimitFixing}
           />
         </div>
       )}
@@ -1470,6 +1470,8 @@ Do NOT start implementing the fix — only provide the updated analysis.`;
         issueCount={
           state.issues.filter((i) => i.status === "pending").length
         }
+        acuLimitScoping={keys.acuLimitScoping}
+        acuLimitFixing={keys.acuLimitFixing}
         open={state.acuModalOpen}
         onClose={() => dispatch({ type: "TOGGLE_ACU_MODAL" })}
         onConfirm={() => {

@@ -12,6 +12,7 @@ interface IssueListProps {
   actions: IssueActions;
   lastMainCommitDate: string | null;
   activeSession: DashboardState["activeSession"];
+  acuLimitFixing: number;
 }
 
 export default function IssueList({
@@ -22,6 +23,7 @@ export default function IssueList({
   actions,
   lastMainCommitDate,
   activeSession,
+  acuLimitFixing,
 }: IssueListProps) {
   if (issues.length === 0) {
     return (
@@ -61,6 +63,7 @@ export default function IssueList({
                   actions={actions}
                   lastMainCommitDate={lastMainCommitDate}
                   activeSession={activeSession}
+                  acuLimitFixing={acuLimitFixing}
                 />
               </div>
             </div>

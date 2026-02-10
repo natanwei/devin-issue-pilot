@@ -36,6 +36,7 @@ interface IssueDetailProps {
   actions: IssueActions;
   lastMainCommitDate?: string | null;
   activeSession: DashboardState["activeSession"];
+  acuLimitFixing: number;
 }
 
 // --- Shared sub-layouts ---
@@ -247,10 +248,12 @@ function ScopedView({
   issue,
   actions,
   lastMainCommitDate,
+  acuLimitFixing,
 }: {
   issue: DashboardIssue;
   actions: IssueActions;
   lastMainCommitDate?: string | null;
+  acuLimitFixing: number;
 }) {
   const isYellow = issue.confidence === "yellow";
   const isRed = issue.confidence === "red";
@@ -282,21 +285,12 @@ function ScopedView({
       )}
       {issue.last_devin_comment_id && (
         <div
-          className="flex items-center justify-between bg-[#1a1a1a] px-4 py-3 rounded-md"
+          className="bg-[#1a1a1a] px-4 py-3 rounded-md"
           style={{ borderLeft: "3px solid #f59e0b" }}
         >
           <span className="text-text-secondary text-sm">
             Questions posted on GitHub — waiting for reply
           </span>
-          <a
-            href={issue.github_comment_url || issue.github_url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-1.5 text-accent-blue text-sm font-medium hover:opacity-80"
-          >
-            <ExternalLink className="h-3.5 w-3.5" />
-            View comment →
-          </a>
         </div>
       )}
       <DetailGrid issue={issue} />
@@ -306,7 +300,6 @@ function ScopedView({
           <DevinQuestions
             questions={questions}
             color={isRed ? "red" : "amber"}
-            githubCommentUrl={issue.github_comment_url}
           />
           <ConversationThread messages={issue.messages || []} />
         </>
@@ -316,7 +309,7 @@ function ScopedView({
         <MessageInput
           color={isRed ? "red" : "amber"}
           placeholder="Answer Devin's questions..."
-          helperText="Devin will re-analyze with your clarification"
+          helperText="Devin will re-analyze with your clarification. You can also reply on GitHub."
           onSend={async (msg) => {
             actions.onSendClarification(issue, msg);
           }}
@@ -335,7 +328,7 @@ function ScopedView({
                 Start Fix
               </button>
               <span className="text-text-muted text-[13px]">
-                Estimated {isYellow ? "5-12" : "3-8"} ACUs
+                {acuLimitFixing > 0 ? `Up to ${acuLimitFixing} ACUs` : "No ACU limit"}
               </span>
             </>
           )}
@@ -352,10 +345,16 @@ function ScopedView({
               {issue.github_comment_url ? "Answer on GitHub →" : "View on GitHub →"}
             </a>
           )}
-          {!isRed && (
-            <span className="text-text-muted text-xs">
+          {!isRed && (issue.scoping_session?.session_url || issue.fix_session?.session_url) && (
+            <a
+              href={issue.scoping_session?.session_url || issue.fix_session?.session_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 text-accent-blue text-xs"
+            >
+              <ExternalLink className="h-3 w-3" />
               Watch Devin work →
-            </span>
+            </a>
           )}
         </div>
       </div>
@@ -783,6 +782,7 @@ export default function IssueDetail({
   actions,
   lastMainCommitDate,
   activeSession,
+  acuLimitFixing,
 }: IssueDetailProps) {
   void dispatch; // kept for potential direct dispatch needs
   void mode;
@@ -817,9 +817,9 @@ export default function IssueDetail({
   function renderContent() {
     switch (effectiveStatus) {
       case "scoped":
-        return <ScopedView issue={issue} actions={actions} lastMainCommitDate={lastMainCommitDate} />;
+        return <ScopedView issue={issue} actions={actions} lastMainCommitDate={lastMainCommitDate} acuLimitFixing={acuLimitFixing} />;
       case "awaiting_reply":
-        return <ScopedView issue={issue} actions={actions} lastMainCommitDate={lastMainCommitDate} />;
+        return <ScopedView issue={issue} actions={actions} lastMainCommitDate={lastMainCommitDate} acuLimitFixing={acuLimitFixing} />;
       case "fixing":
         return <FixingView issue={issue} actions={actions} />;
       case "blocked":

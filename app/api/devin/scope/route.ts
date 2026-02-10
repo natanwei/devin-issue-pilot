@@ -24,7 +24,7 @@ export async function POST(req: NextRequest) {
       issueBody: issueBody || "",
       issueNumber,
       repo,
-      acuLimit: acuLimit || 3,
+      acuLimit: acuLimit ?? 3,
       devinApiKey,
     });
 

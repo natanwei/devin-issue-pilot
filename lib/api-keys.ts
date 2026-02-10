@@ -1,15 +1,20 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { ACU_LIMITS } from "@/lib/constants";
 
 const STORAGE_KEYS = {
   devin: "byok_devin_api_key",
   github: "byok_github_token",
+  acuScoping: "acu_limit_scoping",
+  acuFixing: "acu_limit_fixing",
 } as const;
 
 export interface ApiKeys {
   devinApiKey: string | null;
   githubToken: string | null;
+  acuLimitScoping: number;
+  acuLimitFixing: number;
 }
 
 /** Read/write user-provided API keys from sessionStorage. */
@@ -17,13 +22,19 @@ export function useApiKeys() {
   const [keys, setKeysState] = useState<ApiKeys>({
     devinApiKey: null,
     githubToken: null,
+    acuLimitScoping: ACU_LIMITS.scoping,
+    acuLimitFixing: ACU_LIMITS.fixing,
   });
 
   // Hydrate from sessionStorage on mount (SSR-safe)
   useEffect(() => {
+    const storedScoping = sessionStorage.getItem(STORAGE_KEYS.acuScoping);
+    const storedFixing = sessionStorage.getItem(STORAGE_KEYS.acuFixing);
     setKeysState({
       devinApiKey: sessionStorage.getItem(STORAGE_KEYS.devin),
       githubToken: sessionStorage.getItem(STORAGE_KEYS.github),
+      acuLimitScoping: parseAcuLimit(storedScoping, ACU_LIMITS.scoping),
+      acuLimitFixing: parseAcuLimit(storedFixing, ACU_LIMITS.fixing),
     });
   }, []);
 
@@ -49,6 +60,12 @@ export function useApiKeys() {
           sessionStorage.removeItem(STORAGE_KEYS.github);
         }
       }
+      if (sanitized.acuLimitScoping !== undefined) {
+        sessionStorage.setItem(STORAGE_KEYS.acuScoping, String(sanitized.acuLimitScoping));
+      }
+      if (sanitized.acuLimitFixing !== undefined) {
+        sessionStorage.setItem(STORAGE_KEYS.acuFixing, String(sanitized.acuLimitFixing));
+      }
       return next;
     });
   }, []);
@@ -56,7 +73,14 @@ export function useApiKeys() {
   const clearKeys = useCallback(() => {
     sessionStorage.removeItem(STORAGE_KEYS.devin);
     sessionStorage.removeItem(STORAGE_KEYS.github);
-    setKeysState({ devinApiKey: null, githubToken: null });
+    sessionStorage.removeItem(STORAGE_KEYS.acuScoping);
+    sessionStorage.removeItem(STORAGE_KEYS.acuFixing);
+    setKeysState({
+      devinApiKey: null,
+      githubToken: null,
+      acuLimitScoping: ACU_LIMITS.scoping,
+      acuLimitFixing: ACU_LIMITS.fixing,
+    });
   }, []);
 
   const hasKeys = !!(keys.devinApiKey || keys.githubToken);
@@ -68,6 +92,13 @@ export function useApiKeys() {
 export function maskKey(key: string): string {
   if (key.length <= 4) return key;
   return "\u2022".repeat(Math.min(key.length - 4, 12)) + key.slice(-4);
+}
+
+/** Parse a stored ACU limit. Preserves 0 (unlimited); falls back to default for null/NaN. */
+function parseAcuLimit(stored: string | null, fallback: number): number {
+  if (stored === null) return fallback;
+  const n = parseInt(stored, 10);
+  return isNaN(n) ? fallback : Math.max(0, n);
 }
 
 /** Strip control characters that could cause header injection. */

@@ -1,10 +1,11 @@
 "use client";
 
-import { ACU_LIMITS } from "@/lib/constants";
 import { AlertTriangle } from "lucide-react";
 
 interface ACUModalProps {
   issueCount: number;
+  acuLimitScoping: number;
+  acuLimitFixing: number;
   open: boolean;
   onClose: () => void;
   onConfirm: () => void;
@@ -12,13 +13,17 @@ interface ACUModalProps {
 
 export default function ACUModal({
   issueCount,
+  acuLimitScoping,
+  acuLimitFixing,
   open,
   onClose,
   onConfirm,
 }: ACUModalProps) {
   if (!open) return null;
 
-  const estimatedACUs = issueCount * ACU_LIMITS.scoping;
+  const scopingUnlimited = acuLimitScoping === 0;
+  const fixingUnlimited = acuLimitFixing === 0;
+  const estimatedACUs = scopingUnlimited ? null : issueCount * acuLimitScoping;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
@@ -57,7 +62,7 @@ export default function ACUModal({
           <div className="flex items-center justify-between">
             <span className="text-text-secondary text-sm">ACUs per issue</span>
             <span className="text-text-primary font-mono text-sm font-medium">
-              {ACU_LIMITS.scoping}
+              {scopingUnlimited ? "No limit" : acuLimitScoping}
             </span>
           </div>
           <div className="h-px bg-border-subtle" />
@@ -66,16 +71,22 @@ export default function ACUModal({
               Estimated total
             </span>
             <span className="text-accent-amber font-mono text-sm font-semibold">
-              ~{estimatedACUs} ACUs
+              {estimatedACUs !== null ? `~${estimatedACUs} ACUs` : "No limit"}
             </span>
           </div>
         </div>
 
         {/* Fine print */}
         <p className="text-text-muted text-xs leading-relaxed">
-          Each issue will be scoped in a separate Devin session with a maximum of{" "}
-          {ACU_LIMITS.scoping} ACUs. Actual usage may be lower. Fix sessions use
-          up to {ACU_LIMITS.fixing} ACUs each and require separate confirmation.
+          Each issue will be scoped in a separate Devin session
+          {scopingUnlimited
+            ? " with no ACU limit"
+            : ` with a maximum of ${acuLimitScoping} ACUs`}
+          . Actual usage may be lower. Fix sessions
+          {fixingUnlimited
+            ? " have no ACU limit"
+            : ` use up to ${acuLimitFixing} ACUs each`}
+          {" "}and require separate confirmation.
         </p>
 
         {/* Buttons */}

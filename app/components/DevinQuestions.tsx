@@ -1,11 +1,8 @@
 "use client";
 
-import { ExternalLink } from "lucide-react";
-
 interface DevinQuestionsProps {
   questions: string[];
   color: "amber" | "red";
-  githubCommentUrl?: string | null;
 }
 
 const colorMap = {
@@ -22,7 +19,6 @@ const colorMap = {
 export default function DevinQuestions({
   questions,
   color,
-  githubCommentUrl,
 }: DevinQuestionsProps) {
   const colors = colorMap[color];
 
@@ -47,17 +43,6 @@ export default function DevinQuestions({
           {i + 1}. {q}
         </p>
       ))}
-      {githubCommentUrl && (
-        <a
-          href={githubCommentUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="flex items-center gap-1.5 text-accent-blue text-[13px] mt-1"
-        >
-          <ExternalLink className="h-3 w-3" />
-          Posted on GitHub issue →
-        </a>
-      )}
     </div>
   );
 }
