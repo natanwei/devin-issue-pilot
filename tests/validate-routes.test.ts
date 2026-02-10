@@ -1,10 +1,14 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
-const fetchMock = vi.fn();
-vi.stubGlobal("fetch", fetchMock);
+let fetchMock: ReturnType<typeof vi.fn>;
 
 beforeEach(() => {
-  fetchMock.mockReset();
+  fetchMock = vi.fn();
+  vi.stubGlobal("fetch", fetchMock);
+});
+
+afterEach(() => {
+  vi.restoreAllMocks();
 });
 
 describe("GET /api/devin/validate", () => {
