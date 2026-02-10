@@ -129,11 +129,59 @@ export function useSessionPolling(
           ) {
             // Re-scope after user reply came back green — confirm on GitHub
             const body = formatReadyComment(issueNumber, patchScoping);
-            postGitHubComment(issueNumber, body).catch(() => {});
+            const posted = await postGitHubComment(issueNumber, body);
+            if (posted) {
+              dispatch({
+                type: "UPDATE_ISSUE",
+                issueNumber,
+                patch: {
+                  last_devin_comment_id: posted.id,
+                  last_devin_comment_at: posted.created_at,
+                  github_comment_url: posted.html_url,
+                },
+              });
+              if (current.repo) {
+                fetch("/api/supabase/sessions", {
+                  method: "PATCH",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    repo: `${current.repo.owner}/${current.repo.name}`,
+                    issue_number: issueNumber,
+                    last_devin_comment_id: posted.id,
+                    last_devin_comment_at: posted.created_at,
+                    github_comment_url: posted.html_url,
+                  }),
+                }).catch(() => {});
+              }
+            }
           } else if (patchScoping) {
             // Green confidence, no prior conversation — post summary on GitHub
             const body = formatGreenScopedComment(issueNumber, patchScoping);
-            postGitHubComment(issueNumber, body).catch(() => {});
+            const posted = await postGitHubComment(issueNumber, body);
+            if (posted) {
+              dispatch({
+                type: "UPDATE_ISSUE",
+                issueNumber,
+                patch: {
+                  last_devin_comment_id: posted.id,
+                  last_devin_comment_at: posted.created_at,
+                  github_comment_url: posted.html_url,
+                },
+              });
+              if (current.repo) {
+                fetch("/api/supabase/sessions", {
+                  method: "PATCH",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    repo: `${current.repo.owner}/${current.repo.name}`,
+                    issue_number: issueNumber,
+                    last_devin_comment_id: posted.id,
+                    last_devin_comment_at: posted.created_at,
+                    github_comment_url: posted.html_url,
+                  }),
+                }).catch(() => {});
+              }
+            }
           }
           break;
         }
