@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   formatScopingComment,
+  formatGreenScopedComment,
   formatBlockedComment,
   formatDoneComment,
   isDevinComment,
@@ -78,6 +79,65 @@ describe("formatBlockedComment", () => {
     expect(result).toContain("**What happened:** Something went wrong");
     expect(result).not.toContain("suggestion");
     expect(result).toContain("Issue #7");
+  });
+});
+
+describe("formatGreenScopedComment", () => {
+  it("includes header, confidence, plan, files, and footer", () => {
+    const greenScoping: ScopingResult = {
+      ...SCOPING_FIXTURE,
+      confidence: "green",
+      confidence_reason: "Clear requirements, well-defined scope",
+      open_questions: [],
+    };
+    const result = formatGreenScopedComment(2, greenScoping);
+
+    expect(result).toContain("Devin scoped this issue");
+    expect(result).toContain("ready to fix");
+    expect(result).toContain("**Confidence:** green");
+    expect(result).toContain("Clear requirements, well-defined scope");
+    expect(result).toContain("**Plan:**");
+    expect(result).toContain("- Update error handler");
+    expect(result).toContain("- Add try-catch");
+    expect(result).toContain("**Files:** `src/routes/health.ts`");
+    expect(result).toContain("Head to the dashboard to start the fix");
+    expect(result).toContain("Issue #2");
+    expect(result).toContain("Devin Issue Pilot");
+  });
+
+  it("omits plan section when action_plan is empty", () => {
+    const noSteps: ScopingResult = {
+      ...SCOPING_FIXTURE,
+      confidence: "green",
+      open_questions: [],
+      action_plan: [],
+    };
+    const result = formatGreenScopedComment(9, noSteps);
+
+    expect(result).not.toContain("**Plan:**");
+    expect(result).toContain("Issue #9");
+  });
+
+  it("omits files section when files_to_modify is empty", () => {
+    const noFiles: ScopingResult = {
+      ...SCOPING_FIXTURE,
+      confidence: "green",
+      open_questions: [],
+      files_to_modify: [],
+    };
+    const result = formatGreenScopedComment(10, noFiles);
+
+    expect(result).not.toContain("**Files:**");
+    expect(result).toContain("Issue #10");
+  });
+
+  it("is detected by isDevinComment", () => {
+    const greenScoping: ScopingResult = {
+      ...SCOPING_FIXTURE,
+      confidence: "green",
+      open_questions: [],
+    };
+    expect(isDevinComment(formatGreenScopedComment(1, greenScoping))).toBe(true);
   });
 });
 

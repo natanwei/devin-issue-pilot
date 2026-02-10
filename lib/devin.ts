@@ -142,7 +142,7 @@ ${(params.scopingResult.risks ?? []).length > 0 ? params.scopingResult.risks!.ma
 3. Write the tests described in "Tests Needed" and ensure they pass
 4. Be mindful of the known risks listed above
 5. Commit with clear, descriptive commit messages
-6. Create a PR with a clear title referencing issue #${params.issueNumber} and a description summarizing the changes
+6. Create a PR with a clear title and description summarizing the changes. Include "Closes #${params.issueNumber}" in the PR description so the issue auto-closes when merged
 7. If you encounter a blocker or need clarification, ask — don't guess`;
 
   if (params.previousContext) {

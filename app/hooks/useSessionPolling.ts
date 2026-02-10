@@ -7,6 +7,7 @@ import { apiKeyHeaders, type ApiKeys } from "@/lib/api-keys";
 import {
   formatScopingComment,
   formatReadyComment,
+  formatGreenScopedComment,
   formatBlockedComment,
   formatDoneComment,
 } from "@/lib/comment-templates";
@@ -128,6 +129,10 @@ export function useSessionPolling(
           ) {
             // Re-scope after user reply came back green — confirm on GitHub
             const body = formatReadyComment(issueNumber, patchScoping);
+            postGitHubComment(issueNumber, body).catch(() => {});
+          } else if (patchScoping) {
+            // Green confidence, no prior conversation — post summary on GitHub
+            const body = formatGreenScopedComment(issueNumber, patchScoping);
             postGitHubComment(issueNumber, body).catch(() => {});
           }
           break;

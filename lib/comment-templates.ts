@@ -97,6 +97,47 @@ export function formatReadyComment(
   return lines.join("\n");
 }
 
+export function formatGreenScopedComment(
+  issueNumber: number,
+  scoping: ScopingResult,
+): string {
+  const lines: string[] = [];
+
+  lines.push(
+    `### \u2705 **Devin scoped this issue \u2014 ready to fix**`,
+  );
+  lines.push("");
+
+  lines.push(
+    `**Confidence:** ${scoping.confidence} \u2014 ${scoping.confidence_reason}`,
+  );
+  lines.push("");
+
+  if (scoping.action_plan.length > 0) {
+    lines.push("**Plan:**");
+    for (const step of scoping.action_plan) {
+      lines.push(`- ${step}`);
+    }
+    lines.push("");
+  }
+
+  if (scoping.files_to_modify.length > 0) {
+    lines.push(
+      "**Files:** " + scoping.files_to_modify.map((f) => "`" + f + "`").join(", "),
+    );
+    lines.push("");
+  }
+
+  lines.push("---");
+  lines.push(`> Head to the dashboard to start the fix`);
+  lines.push("");
+  lines.push(
+    `<sub>\u{1F916} Posted by [Devin Issue Pilot](https://github.com/natanwei/devin-issue-pilot) \u2022 Issue #${issueNumber}</sub>`,
+  );
+
+  return lines.join("\n");
+}
+
 export function formatDoneComment(
   issueNumber: number,
   prUrl: string,
