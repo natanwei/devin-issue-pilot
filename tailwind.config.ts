@@ -82,9 +82,14 @@ const config: Config = {
           "0%, 100%": { opacity: "1" },
           "50%": { opacity: "0.5" },
         },
+        "progress-slide": {
+          "0%": { transform: "translateX(-100%)" },
+          "100%": { transform: "translateX(400%)" },
+        },
       },
       animation: {
         "pulse-slow": "pulse-slow 2s ease-in-out infinite",
+        "progress-slide": "progress-slide 1.5s ease-in-out infinite",
       },
     },
   },

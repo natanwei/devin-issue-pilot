@@ -375,28 +375,28 @@ function FixingView({
   issue: DashboardIssue;
   actions: IssueActions;
 }) {
+  const startedAt = issue.fix_started_at ?? issue.fix_session?.started_at;
+
   const [elapsed, setElapsed] = useState(() =>
-    issue.fix_session
-      ? Math.floor((Date.now() - new Date(issue.fix_session.started_at).getTime()) / 1000)
-      : 272 // 4m 32s fallback for demo
+    startedAt
+      ? Math.max(0, Math.floor((Date.now() - new Date(startedAt).getTime()) / 1000))
+      : 0
   );
 
   useEffect(() => {
-    if (!issue.fix_session) return;
+    if (!startedAt) return;
     const interval = setInterval(() => {
-      setElapsed(Math.floor((Date.now() - new Date(issue.fix_session!.started_at).getTime()) / 1000));
+      setElapsed(Math.max(0, Math.floor((Date.now() - new Date(startedAt).getTime()) / 1000)));
     }, 1000);
     return () => clearInterval(interval);
-  }, [issue.fix_session]);
+  }, [startedAt]);
 
   const minutes = Math.floor(elapsed / 60);
   const seconds = elapsed % 60;
 
   const completedCount = issue.steps.filter((s) => s.status === "done").length;
-  const progress =
-    issue.steps.length > 0
-      ? (completedCount / issue.steps.length) * 100
-      : 40;
+  const hasSteps = issue.steps.length > 0;
+  const progress = hasSteps ? (completedCount / issue.steps.length) * 100 : 0;
 
   return (
     <>
@@ -413,10 +413,14 @@ function FixingView({
 
       {/* Progress bar */}
       <div className="w-full h-0.5 bg-border-subtle rounded-full overflow-hidden">
-        <div
-          className="h-full bg-accent-blue rounded-full transition-all duration-500"
-          style={{ width: `${progress}%` }}
-        />
+        {hasSteps ? (
+          <div
+            className="h-full bg-accent-blue rounded-full transition-all duration-500"
+            style={{ width: `${progress}%` }}
+          />
+        ) : (
+          <div className="h-full w-1/3 bg-accent-blue rounded-full animate-progress-slide" />
+        )}
       </div>
 
       {/* Footer */}
