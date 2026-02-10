@@ -851,8 +851,7 @@ export default function Dashboard({
           if (
             patchScoping &&
             (patchConf === "yellow" || patchConf === "red") &&
-            patchScoping.open_questions.length > 0 &&
-            !issue.last_devin_comment_id
+            patchScoping.open_questions.length > 0
           ) {
             const body = formatScopingComment(issueNumber, patchScoping);
             const posted = await postGitHubComment(issueNumber, body);
