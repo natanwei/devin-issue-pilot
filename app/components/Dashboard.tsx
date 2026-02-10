@@ -31,6 +31,7 @@ import {
   formatBlockedComment,
   formatDoneComment,
   isDevinComment,
+  isDuplicateMessage,
 } from "@/lib/comment-templates";
 import TopBar from "./TopBar";
 import FilterBar from "./FilterBar";
@@ -234,15 +235,19 @@ export default function Dashboard({
     [state.issues, state.filter, state.sortBy]
   );
 
-  // --- Demo mode toast ---
-  const [demoToast, setDemoToast] = useState<string | null>(null);
+  // --- Toast (demo mode + 403 warnings) ---
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
   const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const showDemoToast = useCallback(() => {
-    setDemoToast("Switch to Live mode to use this action");
+  const showToast = useCallback((msg: string, durationMs = 2000) => {
+    setToastMessage(msg);
     if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
-    toastTimerRef.current = setTimeout(() => setDemoToast(null), 2000);
+    toastTimerRef.current = setTimeout(() => setToastMessage(null), durationMs);
   }, []);
+
+  const showDemoToast = useCallback(() => {
+    showToast("Switch to Live mode to use this action");
+  }, [showToast]);
 
   useEffect(() => {
     return () => {
@@ -660,7 +665,7 @@ export default function Dashboard({
         });
         if (!res.ok) {
           if (res.status === 403) {
-            console.warn("GitHub comments disabled — token missing write access");
+            showToast("GitHub comments disabled \u2014 token missing write access", 4000);
             return null;
           }
           return null;
@@ -670,7 +675,7 @@ export default function Dashboard({
         return null;
       }
     },
-    [],
+    [showToast],
   );
 
   const pollInboundComments = useCallback(
@@ -689,9 +694,16 @@ export default function Dashboard({
         const alreadyForwarded = new Set(issue.forwarded_comment_ids);
         const newForwardedIds: number[] = [];
 
+        const pendingMsg = pendingMessagesRef.current.get(issue.number);
+
         for (const c of comments) {
           if (alreadyForwarded.has(c.id)) continue;
           if (isDevinComment(c.body)) continue;
+
+          if (pendingMsg && isDuplicateMessage(c.body, pendingMsg, c.created_at, new Date().toISOString())) {
+            newForwardedIds.push(c.id);
+            continue;
+          }
 
           try {
             await fetch("/api/devin/message", {
@@ -889,7 +901,8 @@ export default function Dashboard({
 
           // Outbound: post blocker comment on GitHub (only for new blockers)
           if (!wasAlreadyBlocked && result.patch.blocker) {
-            const body = formatBlockedComment(issueNumber, result.patch.blocker as import("@/lib/types").BlockerInfo);
+            const blocker = result.patch.blocker as BlockerInfo;
+            const body = formatBlockedComment(issueNumber, blocker);
             const posted = await postGitHubComment(issueNumber, body);
             if (posted) {
               dispatch({
@@ -1025,6 +1038,11 @@ export default function Dashboard({
   const handleSendMessage = useCallback(
     async (sessionId: string, message: string) => {
       if (state.mode === "demo") { showDemoToast(); return; }
+
+      const activeIssueNumber = stateRef.current.activeSession?.issueNumber;
+      if (activeIssueNumber) {
+        pendingMessagesRef.current.set(activeIssueNumber, message);
+      }
 
       const res = await fetch("/api/devin/message", {
         method: "POST",
@@ -1315,10 +1333,10 @@ export default function Dashboard({
         onClear={clearKeys}
       />
 
-      {/* Demo mode toast */}
-      {demoToast && (
+      {/* Toast */}
+      {toastMessage && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-dp-card border border-border-subtle rounded-lg px-4 py-2.5 shadow-lg">
-          <span className="text-text-secondary text-sm">{demoToast}</span>
+          <span className="text-text-secondary text-sm">{toastMessage}</span>
         </div>
       )}
     </div>
