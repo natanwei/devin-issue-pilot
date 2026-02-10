@@ -965,6 +965,7 @@ export function getDemoIssues(): DashboardIssue[] {
       blocker: null,
       pr: null,
       steps: [],
+      messages: [],
       scoping_session: {
         session_id: "demo-scope-20",
         session_url: "https://app.devin.ai/sessions/demo-scope-20",
