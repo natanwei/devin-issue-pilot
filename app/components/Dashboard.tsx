@@ -710,15 +710,15 @@ export default function Dashboard({
   );
 
   const pollInboundComments = useCallback(
-    async (issue: DashboardIssue, sessionId: string) => {
+    async (issue: DashboardIssue, sessionId: string): Promise<boolean> => {
       const current = stateRef.current;
-      if (!current.repo || !issue.last_devin_comment_at) return;
+      if (!current.repo || !issue.last_devin_comment_at) return false;
       try {
         const res = await fetch(
           `/api/github/comments?owner=${encodeURIComponent(current.repo.owner)}&repo=${encodeURIComponent(current.repo.name)}&issueNumber=${issue.number}&since=${encodeURIComponent(issue.last_devin_comment_at)}`,
           { headers: apiKeyHeaders(keysRef.current) },
         );
-        if (!res.ok) return;
+        if (!res.ok) return false;
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const comments: any[] = await res.json();
 
@@ -745,7 +745,7 @@ export default function Dashboard({
               },
               body: JSON.stringify({
                 sessionId,
-                message: `[GitHub reply from @${c.user?.login || "unknown"}]: ${c.body}`,
+                message: `The user has provided the following clarification to your open questions (via GitHub comment from @${c.user?.login || "unknown"}):\n"${c.body}"\n\nPlease re-analyze the issue with this new information and output an UPDATED JSON analysis wrapped in \`\`\`json fences (same schema). Update your confidence level accordingly.\nDo NOT start implementing the fix — only provide the updated analysis.`,
               }),
             });
             newForwardedIds.push(c.id);
@@ -761,6 +761,21 @@ export default function Dashboard({
             issueNumber: issue.number,
             patch: { forwarded_comment_ids: updatedIds },
           });
+
+          // Trigger re-scoping so the dashboard polls for Devin's updated analysis
+          dispatch({
+            type: "UPDATE_ISSUE",
+            issueNumber: issue.number,
+            patch: { status: "scoping" as const },
+          });
+          dispatch({
+            type: "SET_SESSION",
+            sessionId,
+            sessionUrl: issue.scoping_session?.session_url || "",
+            issueNumber: issue.number,
+            sessionType: "scoping",
+          });
+
           if (current.repo) {
             fetch("/api/supabase/sessions", {
               method: "PATCH",
@@ -769,12 +784,18 @@ export default function Dashboard({
                 repo: `${current.repo.owner}/${current.repo.name}`,
                 issue_number: issue.number,
                 forwarded_comment_ids: updatedIds,
+                status: "scoping",
+                scoping: null,
+                scoped_at: null,
               }),
             }).catch(() => {});
           }
+          return true;
         }
+        return false;
       } catch {
         // Inbound comment polling failure is non-critical
+        return false;
       }
     },
     [],
@@ -1012,7 +1033,8 @@ export default function Dashboard({
           issue.scoping_session?.session_id || issue.fix_session?.session_id;
         if (!sessionId) continue;
 
-        await pollInboundComments(issue, sessionId);
+        const forwarded = await pollInboundComments(issue, sessionId);
+        if (forwarded) break; // Re-scoping triggered, process one at a time
       }
     }, 30_000);
 
