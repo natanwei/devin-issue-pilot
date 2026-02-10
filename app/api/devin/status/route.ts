@@ -64,9 +64,13 @@ export async function GET(req: NextRequest) {
         repo,
         issue_number: issueNum,
         status: session.pull_request ? "done" : parsed ? "scoped" : session.status_enum === "blocked" ? "blocked" : session.status_enum,
-        confidence: parsed?.confidence ?? null,
-        scoping: parsed as Record<string, unknown> | null,
-        scoped_at: parsed ? new Date().toISOString() : null,
+        // Only persist scoping fields when we actually have parsed data,
+        // otherwise fix-session polls would overwrite earlier scoping data with null
+        ...(parsed ? {
+          confidence: parsed.confidence,
+          scoping: parsed as Record<string, unknown>,
+          scoped_at: new Date().toISOString(),
+        } : {}),
         pr: session.pull_request ? { url: session.pull_request.url } : null,
         completed_at: session.pull_request ? new Date().toISOString() : null,
         ...(session.status_enum === "blocked" && blockerMessage
