@@ -103,7 +103,7 @@ export function formatReadyComment(
   }
 
   lines.push("---");
-  lines.push(`> Head to the dashboard to start the fix`);
+  lines.push(`> [Head to the dashboard to start the fix](https://devin-issue-pilot.vercel.app/)`);
   lines.push("");
   lines.push(
     `<sub>\u{1F916} Posted by [Devin Issue Pilot](https://github.com/natanwei/devin-issue-pilot) \u2022 Issue #${issueNumber}</sub>`,
@@ -144,7 +144,7 @@ export function formatGreenScopedComment(
   }
 
   lines.push("---");
-  lines.push(`> Head to the dashboard to start the fix`);
+  lines.push(`> [Head to the dashboard to start the fix](https://devin-issue-pilot.vercel.app/)`);
   lines.push("");
   lines.push(
     `<sub>\u{1F916} Posted by [Devin Issue Pilot](https://github.com/natanwei/devin-issue-pilot) \u2022 Issue #${issueNumber}</sub>`,

@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   formatScopingComment,
+  formatReadyComment,
   formatGreenScopedComment,
   formatBlockedComment,
   formatDoneComment,
@@ -101,6 +102,7 @@ describe("formatGreenScopedComment", () => {
     expect(result).toContain("- Add try-catch");
     expect(result).toContain("**Files:** `src/routes/health.ts`");
     expect(result).toContain("Head to the dashboard to start the fix");
+    expect(result).toContain("https://devin-issue-pilot.vercel.app/");
     expect(result).toContain("Issue #2");
     expect(result).toContain("Devin Issue Pilot");
   });
@@ -138,6 +140,27 @@ describe("formatGreenScopedComment", () => {
       open_questions: [],
     };
     expect(isDevinComment(formatGreenScopedComment(1, greenScoping))).toBe(true);
+  });
+});
+
+describe("formatReadyComment", () => {
+  it("includes dashboard link as clickable Markdown URL", () => {
+    const greenScoping: ScopingResult = {
+      ...SCOPING_FIXTURE,
+      confidence: "green",
+      confidence_reason: "Clear requirements",
+      open_questions: [],
+    };
+    const result = formatReadyComment(5, greenScoping);
+
+    expect(result).toContain("Clarification received");
+    expect(result).toContain("ready to fix");
+    expect(result).toContain("Head to the dashboard to start the fix");
+    expect(result).toContain("https://devin-issue-pilot.vercel.app/");
+    expect(result).toContain(
+      "[Head to the dashboard to start the fix](https://devin-issue-pilot.vercel.app/)",
+    );
+    expect(result).toContain("Issue #5");
   });
 });
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Settings, Eye, EyeOff, X, ChevronDown, ChevronUp, ExternalLink } from "lucide-react";
+import { Settings, Eye, EyeOff, X, ChevronDown, ChevronUp, ExternalLink, Loader2 } from "lucide-react";
 import { ApiKeys, maskKey } from "@/lib/api-keys";
 
 interface SettingsPanelProps {
@@ -26,6 +26,9 @@ export default function SettingsPanel({
   const [guideOpen, setGuideOpen] = useState(false);
   const [scopingAcu, setScopingAcu] = useState(keys.acuLimitScoping);
   const [fixingAcu, setFixingAcu] = useState(keys.acuLimitFixing);
+  const [validating, setValidating] = useState(false);
+  const [devinError, setDevinError] = useState<string | null>(null);
+  const [githubError, setGithubError] = useState<string | null>(null);
 
   if (!open) return null;
 
@@ -33,7 +36,7 @@ export default function SettingsPanel({
   const hasExistingGithub = !!keys.githubToken;
   const hasAnyKeys = hasExistingDevin || hasExistingGithub;
 
-  function handleSave() {
+  async function handleSave() {
     const updates: Partial<ApiKeys> = {};
     if (devinDraft.trim()) updates.devinApiKey = devinDraft.trim();
     if (githubDraft.trim()) updates.githubToken = githubDraft.trim();
@@ -43,6 +46,51 @@ export default function SettingsPanel({
     if (Object.keys(updates).length === 0) {
       onClose();
       return;
+    }
+
+    setDevinError(null);
+    setGithubError(null);
+
+    const needsDevinValidation = !!updates.devinApiKey;
+    const needsGithubValidation = !!updates.githubToken;
+
+    if (needsDevinValidation || needsGithubValidation) {
+      setValidating(true);
+      try {
+        const results = await Promise.all([
+          needsDevinValidation
+            ? fetch("/api/devin/validate", {
+                headers: { "x-devin-api-key": updates.devinApiKey! },
+              }).then((r) => r.json()).catch(() => ({ valid: false, error: "Network error" }))
+            : null,
+          needsGithubValidation
+            ? fetch("/api/github/validate", {
+                headers: { "x-github-token": updates.githubToken! },
+              }).then((r) => r.json()).catch(() => ({ valid: false, error: "Network error" }))
+            : null,
+        ]);
+
+        const [devinResult, githubResult] = results;
+        let hasError = false;
+
+        if (devinResult && !devinResult.valid) {
+          setDevinError(devinResult.error || "Invalid API key");
+          hasError = true;
+        }
+        if (githubResult && !githubResult.valid) {
+          setGithubError(githubResult.error || "Invalid token");
+          hasError = true;
+        }
+
+        if (hasError) {
+          setValidating(false);
+          return;
+        }
+      } catch {
+        setValidating(false);
+        return;
+      }
+      setValidating(false);
     }
 
     onSave(updates);
@@ -187,9 +235,14 @@ export default function SettingsPanel({
               <input
                 type={showDevin ? "text" : "password"}
                 value={devinDraft.trim() === "" ? devinDraft.trimStart() : devinDraft}
-                onChange={(e) => setDevinDraft(e.target.value)}
+                onChange={(e) => {
+                  setDevinDraft(e.target.value);
+                  if (devinError) setDevinError(null);
+                }}
                 placeholder="apk_user_..."
-                className="w-full bg-elevated border border-border-subtle rounded-md px-3 py-2 pr-10 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent-blue transition-colors"
+                className={`w-full bg-elevated border rounded-md px-3 py-2 pr-10 text-sm text-text-primary placeholder:text-text-muted focus:outline-none transition-colors ${
+                  devinError ? "border-accent-red focus:border-accent-red" : "border-border-subtle focus:border-accent-blue"
+                }`}
                 autoComplete="off"
               />
               <button
@@ -203,6 +256,9 @@ export default function SettingsPanel({
                 )}
               </button>
             </div>
+          )}
+          {devinError && (
+            <p className="text-accent-red text-xs">{devinError}</p>
           )}
         </div>
 
@@ -228,9 +284,14 @@ export default function SettingsPanel({
               <input
                 type={showGithub ? "text" : "password"}
                 value={githubDraft.trim() === "" ? githubDraft.trimStart() : githubDraft}
-                onChange={(e) => setGithubDraft(e.target.value)}
+                onChange={(e) => {
+                  setGithubDraft(e.target.value);
+                  if (githubError) setGithubError(null);
+                }}
                 placeholder="ghp_..."
-                className="w-full bg-elevated border border-border-subtle rounded-md px-3 py-2 pr-10 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent-blue transition-colors"
+                className={`w-full bg-elevated border rounded-md px-3 py-2 pr-10 text-sm text-text-primary placeholder:text-text-muted focus:outline-none transition-colors ${
+                  githubError ? "border-accent-red focus:border-accent-red" : "border-border-subtle focus:border-accent-blue"
+                }`}
                 autoComplete="off"
               />
               <button
@@ -244,6 +305,9 @@ export default function SettingsPanel({
                 )}
               </button>
             </div>
+          )}
+          {githubError && (
+            <p className="text-accent-red text-xs">{githubError}</p>
           )}
         </div>
 
@@ -346,9 +410,11 @@ export default function SettingsPanel({
             </button>
             <button
               onClick={handleSave}
-              className="px-4 py-2 rounded-md bg-accent-purple text-white text-sm font-semibold hover:bg-accent-purple/90 transition-colors"
+              disabled={validating}
+              className="px-4 py-2 rounded-md bg-accent-purple text-white text-sm font-semibold hover:bg-accent-purple/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center gap-2"
             >
-              Save
+              {validating && <Loader2 className="h-4 w-4 animate-spin" />}
+              {validating ? "Validating..." : "Save"}
             </button>
           </div>
         </div>
