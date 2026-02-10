@@ -14,6 +14,7 @@ import {
   Timer,
   Search,
   RefreshCw,
+  KeyRound,
 } from "lucide-react";
 import { ConversationThread, DetailGrid, SessionStats } from "./issue-detail-shared";
 import type { IssueActions } from "./IssueDetail";
@@ -23,7 +24,7 @@ import type { IssueActions } from "./IssueDetail";
 function ApiKeysHint({ onOpenSettings }: { onOpenSettings: () => void }) {
   return (
     <span className="text-text-muted text-sm">
-      🔑 Add your API keys in{" "}
+      <KeyRound className="inline h-3.5 w-3.5" /> Add your API keys in{" "}
       <button
         onClick={onOpenSettings}
         className="text-accent-blue font-medium hover:underline"
