@@ -38,8 +38,8 @@ export async function POST(req: NextRequest) {
       previousContext: previousContext || undefined,
     });
 
-    // Persist to Supabase
-    upsertIssueSession({
+    // Persist to Supabase (must await on Vercel — fire-and-forget gets killed)
+    await upsertIssueSession({
       repo,
       issue_number: issueNumber,
       status: "fixing",
