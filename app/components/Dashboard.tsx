@@ -1289,10 +1289,73 @@ Do NOT start implementing the fix — only provide the updated analysis.`;
   const handleRetry = useCallback(
     async (issue: DashboardIssue) => {
       if (state.mode === "demo") { showDemoToast(); return; }
+      if (!state.repo) return;
 
-      // Build context from the previous session (blocker Q + pending user answer)
-      let previousContext: string | undefined;
       const pendingMsg = pendingMessagesRef.current.get(issue.number);
+      const sessionId = issue.fix_session?.session_id;
+      const isWakeable = issue.status === "blocked" && sessionId;
+
+      if (isWakeable) {
+        const parts: string[] = [];
+        if (issue.blocker) {
+          parts.push(`Previous blocker: "${issue.blocker.what_happened}"`);
+        }
+        if (pendingMsg) {
+          parts.push(`User response: "${pendingMsg}"`);
+          pendingMessagesRef.current.delete(issue.number);
+        }
+        const wakeMessage = parts.length > 0
+          ? `Please continue. ${parts.join("\n")}`
+          : "Please continue working on this issue.";
+
+        try {
+          const res = await fetch("/api/devin/message", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", ...apiKeyHeaders(keysRef.current) },
+            body: JSON.stringify({ sessionId, message: wakeMessage }),
+          });
+
+          if (!res.ok) {
+            const data = await res.json().catch(() => ({}));
+            if (res.status === 404) {
+              throw new Error(data.error || "Session expired on server");
+            }
+            throw new Error(data.error || `Wake message failed (${res.status})`);
+          }
+
+          dispatch({
+            type: "UPDATE_ISSUE",
+            issueNumber: issue.number,
+            patch: { status: "fixing", blocker: null },
+          });
+
+          dispatch({
+            type: "SET_SESSION",
+            sessionId,
+            sessionUrl: issue.fix_session!.session_url,
+            issueNumber: issue.number,
+            sessionType: "fixing",
+          });
+
+          const repoStr = `${state.repo.owner}/${state.repo.name}`;
+          fetch("/api/supabase/sessions", {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              repo: repoStr,
+              issue_number: issue.number,
+              status: "fixing",
+              blocker: null,
+            }),
+          }).catch(() => {});
+
+          return;
+        } catch {
+          // Wake failed (likely 404 / expired) — fall through to terminate+recreate
+        }
+      }
+
+      let previousContext: string | undefined;
       if (issue.blocker || pendingMsg) {
         const parts: string[] = [];
         if (issue.blocker) {
@@ -1306,20 +1369,18 @@ Do NOT start implementing the fix — only provide the updated analysis.`;
         previousContext = parts.join("\n");
       }
 
-      // Terminate the old session to avoid idempotent reuse
-      if (issue.fix_session?.session_id) {
+      if (sessionId) {
         try {
           await fetch("/api/devin/terminate", {
             method: "POST",
             headers: { "Content-Type": "application/json", ...apiKeyHeaders(keysRef.current) },
-            body: JSON.stringify({ sessionId: issue.fix_session.session_id }),
+            body: JSON.stringify({ sessionId }),
           });
         } catch {
           // Best effort — session may already be terminated
         }
       }
 
-      // Reset to scoped state and trigger a new fix
       dispatch({
         type: "UPDATE_ISSUE",
         issueNumber: issue.number,
@@ -1332,7 +1393,6 @@ Do NOT start implementing the fix — only provide the updated analysis.`;
           completed_at: null,
         },
       });
-      // Start fix with previous context
       handleStartFix({
         ...issue,
         status: "scoped",
@@ -1342,7 +1402,7 @@ Do NOT start implementing the fix — only provide the updated analysis.`;
         steps: [],
       }, previousContext);
     },
-    [handleStartFix, state.mode, showDemoToast]
+    [handleStartFix, state.mode, state.repo, showDemoToast]
   );
 
   const handleApprove = useCallback(
