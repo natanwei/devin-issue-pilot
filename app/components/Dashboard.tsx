@@ -296,7 +296,7 @@ export default function Dashboard({
         })
       );
 
-      // Hydrate from Supabase(merge persisted session data onto fresh GitHub issues)
+      // Hydrate from Supabase (merge persisted session data onto fresh GitHub issues)
       try {
         const sessionsRes = await fetch(
           `/api/supabase/sessions?repo=${encodeURIComponent(`${owner}/${name}`)}`
@@ -335,7 +335,7 @@ export default function Dashboard({
             }
           }
 
-          // Fetch closed issuesthat exist in Supabase but not in GitHub (open) list
+          // Fetch closed issues that exist in Supabase but not in GitHub (open) list
           const matchedNumbers = new Set(issues.map((i) => i.number));
           const missingSessions = sessions.filter(
             (s) => !matchedNumbers.has(s.issue_number)
