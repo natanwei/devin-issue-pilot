@@ -43,9 +43,10 @@ export async function upsertIssueSession(
   const supabase = getSupabase();
   if (!supabase) return;
 
+  const normalized = { ...row, repo: row.repo.toLowerCase() };
   const { error } = await supabase
     .from("issue_sessions")
-    .upsert(row, { onConflict: "repo,issue_number" });
+    .upsert(normalized, { onConflict: "repo,issue_number" });
 
   if (error) {
     console.error("Supabase upsert error:", error.message);
