@@ -68,7 +68,7 @@ export async function GET(req: NextRequest) {
         // otherwise fix-session polls would overwrite earlier scoping data with null
         ...(parsed ? {
           confidence: parsed.confidence,
-          scoping: parsed as Record<string, unknown>,
+          scoping: parsed as unknown as Record<string, unknown>,
           scoped_at: new Date().toISOString(),
         } : {}),
         pr: session.pull_request ? { url: session.pull_request.url } : null,
