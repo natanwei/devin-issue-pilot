@@ -986,9 +986,8 @@ export default function Dashboard({
           scheduleNextPoll(cont.nextPollCategory);
           break;
         }
-        }
       }
-    } catch (err) {
+    } catch(err) {
       console.error("Polling error:", err);
       scheduleNextPoll("default");
     }
