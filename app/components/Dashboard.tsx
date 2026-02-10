@@ -1074,6 +1074,81 @@ export default function Dashboard({
     [state.mode, showDemoToast, scheduleNextPoll]
   );
 
+  const handleSendClarification = useCallback(
+    async (issue: DashboardIssue, message: string) => {
+      if (state.mode === "demo") { showDemoToast(); return; }
+      if (!state.repo) return;
+
+      const sessionId = issue.scoping_session?.session_id;
+      if (!sessionId) {
+        dispatch({ type: "SET_ERROR", error: "No scoping session found for clarification" });
+        return;
+      }
+
+      const wrappedMessage = `The user has provided the following clarification to your open questions:
+"${message}"
+
+Please re-analyze the issue with this new information and output an UPDATED JSON analysis wrapped in \`\`\`json fences (same schema). Update your confidence level accordingly.
+Do NOT start implementing the fix — only provide the updated analysis.`;
+
+      // 1. Set issue status back to "scoping"
+      dispatch({
+        type: "UPDATE_ISSUE",
+        issueNumber: issue.number,
+        patch: { status: "scoping" as const },
+      });
+
+      // 2. Re-establish the active session for polling
+      dispatch({
+        type: "SET_SESSION",
+        sessionId,
+        sessionUrl: issue.scoping_session!.session_url,
+        issueNumber: issue.number,
+        sessionType: "scoping",
+      });
+
+      // 3. Clear the Supabase cache so polling picks up fresh data
+      const repoStr = `${state.repo.owner}/${state.repo.name}`;
+      fetch("/api/supabase/sessions", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          repo: repoStr,
+          issue_number: issue.number,
+          status: "scoping",
+          scoping: null,
+          scoped_at: null,
+        }),
+      }).catch(() => {});
+
+      // 4. Send the wrapped clarification message to Devin
+      try {
+        const res = await fetch("/api/devin/message", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", ...apiKeyHeaders(keysRef.current) },
+          body: JSON.stringify({ sessionId, message: wrappedMessage }),
+        });
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          throw new Error(data.error || `Clarification message failed (${res.status})`);
+        }
+      } catch (err) {
+        // Revert to scoped state on failure
+        dispatch({
+          type: "UPDATE_ISSUE",
+          issueNumber: issue.number,
+          patch: { status: "scoped" as const },
+        });
+        dispatch({ type: "CLEAR_SESSION" });
+        dispatch({
+          type: "SET_ERROR",
+          error: err instanceof Error ? err.message : "Failed to send clarification",
+        });
+      }
+    },
+    [state.mode, state.repo, showDemoToast]
+  );
+
   const handleAbort = useCallback(
     async (issueNumber: number, sessionId: string) => {
       if (state.mode === "demo") { showDemoToast(); return; }
@@ -1207,12 +1282,13 @@ export default function Dashboard({
       onStartFix: handleStartFix,
       onStartScope: handleStartScope,
       onSendMessage: handleSendMessage,
+      onSendClarification: handleSendClarification,
       onAbort: handleAbort,
       onRetry: handleRetry,
       onApprove: handleApprove,
       onOpenSettings: handleOpenSettings,
     }),
-    [handleStartFix, handleStartScope, handleSendMessage, handleAbort, handleRetry, handleApprove, handleOpenSettings]
+    [handleStartFix, handleStartScope, handleSendMessage, handleSendClarification, handleAbort, handleRetry, handleApprove, handleOpenSettings]
   );
 
   return (

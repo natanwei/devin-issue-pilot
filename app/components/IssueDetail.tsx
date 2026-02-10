@@ -22,6 +22,7 @@ export interface IssueActions {
   onStartFix: (issue: DashboardIssue) => void;
   onStartScope: (issue: DashboardIssue) => void;
   onSendMessage: (sessionId: string, message: string) => Promise<void>;
+  onSendClarification: (issue: DashboardIssue, message: string) => void;
   onAbort: (issueNumber: number, sessionId: string) => void;
   onRetry: (issue: DashboardIssue) => void;
   onApprove: (issueNumber: number, sessionId: string) => void;
@@ -223,7 +224,6 @@ function ScopedView({
   const isYellow = issue.confidence === "yellow";
   const isRed = issue.confidence === "red";
   const questions = issue.scoping?.open_questions || [];
-  const sessionId = issue.scoping_session?.session_id;
   const isStale = !!(
     issue.scoped_at &&
     lastMainCommitDate &&
@@ -263,9 +263,10 @@ function ScopedView({
       {(isYellow || isRed) && (
         <MessageInput
           color={isRed ? "red" : "amber"}
+          placeholder="Answer Devin's questions..."
+          helperText="Devin will re-analyze with your clarification"
           onSend={async (msg) => {
-            if (!sessionId) throw new Error("No active session");
-            await actions.onSendMessage(sessionId, msg);
+            actions.onSendClarification(issue, msg);
           }}
         />
       )}
