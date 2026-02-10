@@ -55,11 +55,15 @@ export function parseStructuredOutput(
   // Normalise confidence: lowercase, validate, default "yellow"
   const rawConf =
     typeof obj.confidence === "string" ? obj.confidence.toLowerCase() : "";
-  const confidence: ConfidenceLevel = VALID_CONFIDENCE.includes(
-    rawConf as ConfidenceLevel,
-  )
-    ? (rawConf as ConfidenceLevel)
-    : "yellow";
+  const openQuestions = toStringArray(obj.open_questions);
+
+  // Enforce contract: green means no open questions. Override to yellow if violated.
+  const confidence: ConfidenceLevel =
+    openQuestions.length > 0 && rawConf === "green"
+      ? "yellow"
+      : VALID_CONFIDENCE.includes(rawConf as ConfidenceLevel)
+        ? (rawConf as ConfidenceLevel)
+        : "yellow";
 
   return {
     confidence,
@@ -70,7 +74,7 @@ export function parseStructuredOutput(
     tests_needed: typeof obj.tests_needed === "string" ? obj.tests_needed : "",
     action_plan: toStringArray(obj.action_plan),
     risks: toStringArray(obj.risks),
-    open_questions: toStringArray(obj.open_questions),
+    open_questions: openQuestions,
   };
 }
 

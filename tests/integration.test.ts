@@ -229,6 +229,34 @@ describe("parseStructuredOutput", () => {
     expect(result).toHaveProperty("risks");
     expect(result).toHaveProperty("open_questions");
   });
+
+  it("green + open_questions overrides confidence to yellow", () => {
+    const result = parseStructuredOutput({
+      ...VALID_OUTPUT,
+      confidence: "green",
+      open_questions: ["What timezone is the server in?"],
+    });
+    expect(result!.confidence).toBe("yellow");
+    expect(result!.open_questions).toEqual(["What timezone is the server in?"]);
+  });
+
+  it("yellow + open_questions stays yellow", () => {
+    const result = parseStructuredOutput({
+      ...VALID_OUTPUT,
+      confidence: "yellow",
+      open_questions: ["Which DB?"],
+    });
+    expect(result!.confidence).toBe("yellow");
+  });
+
+  it("green + empty open_questions stays green", () => {
+    const result = parseStructuredOutput({
+      ...VALID_OUTPUT,
+      confidence: "green",
+      open_questions: [],
+    });
+    expect(result!.confidence).toBe("green");
+  });
 });
 
 // ---------------------------------------------------------------------------
