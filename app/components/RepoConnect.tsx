@@ -21,12 +21,12 @@ export default function RepoConnect({ onConnect }: RepoConnectProps) {
       /github\.com\/([a-zA-Z0-9_.-]+)\/([a-zA-Z0-9_.-]+)/
     );
     if (urlMatch) {
-      return { owner: urlMatch[1], name: urlMatch[2] };
+      return { owner: urlMatch[1].toLowerCase(), name: urlMatch[2].toLowerCase() };
     }
     // Handle owner/repo format
     const parts = value.trim().split("/");
     if (parts.length === 2 && parts[0] && parts[1]) {
-      return { owner: parts[0], name: parts[1] };
+      return { owner: parts[0].toLowerCase(), name: parts[1].toLowerCase() };
     }
     return null;
   }
