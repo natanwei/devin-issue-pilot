@@ -1,6 +1,7 @@
 import { isTerminal } from "./devin";
 import type {
   ConfidenceLevel,
+  ConversationMessage,
   DashboardIssue,
   DevinStatusEnum,
   PRFileChange,
@@ -23,6 +24,7 @@ export interface StatusRouteResponse {
   pullRequest: { url: string } | null;
   structuredOutput: Record<string, unknown> | null;
   blockerMessage?: string | null;
+  messages: ConversationMessage[];
 }
 
 /** Discriminated union of all possible poll-interpretation outcomes. */
@@ -32,7 +34,7 @@ export type PollResult =
   | { action: "failed"; patch: Partial<DashboardIssue> }
   | { action: "blocked"; patch: Partial<DashboardIssue> }
   | { action: "timed_out"; patch: Partial<DashboardIssue> }
-  | { action: "continue"; nextPollCategory: string };
+  | { action: "continue"; nextPollCategory: string; patch?: Partial<DashboardIssue> };
 
 // ---------------------------------------------------------------------------
 // parseStructuredOutput
@@ -172,6 +174,8 @@ export function parseSessionResponse(raw: RawSessionResponse): StatusRouteRespon
     ?.filter((m) => m.type === "devin_message" || !m.type)
     ?.at(-1);
 
+  const messages = extractConversationMessages(raw.messages, raw.updated_at);
+
   return {
     sessionId: raw.session_id,
     statusEnum: raw.status_enum,
@@ -182,7 +186,28 @@ export function parseSessionResponse(raw: RawSessionResponse): StatusRouteRespon
     pullRequest: raw.pull_request || null,
     structuredOutput: raw.structured_output || extractStructuredOutputFromMessages(raw.messages) || null,
     blockerMessage: lastDevinMessage?.message || lastDevinMessage?.content || null,
+    messages,
   };
+}
+
+function extractConversationMessages(
+  raw: RawSessionResponse["messages"],
+  sessionUpdatedAt: string,
+): ConversationMessage[] {
+  if (!raw || raw.length === 0) return [];
+  return raw.map((m, i) => {
+    const role: ConversationMessage["role"] =
+      m.type === "user_message" ? "user" : "devin";
+    const text = m.message || m.content || "";
+    const timestamp =
+      i === raw.length - 1
+        ? sessionUpdatedAt
+        : new Date(
+            new Date(sessionUpdatedAt).getTime() -
+              (raw.length - 1 - i) * 1000,
+          ).toISOString();
+    return { role, text, timestamp, source: "app" as const };
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -208,13 +233,13 @@ export function interpretPollResult(
     const elapsed =
       new Date(now).getTime() - new Date(context.sessionStartedAt).getTime();
     if (elapsed > context.timeoutLimit) {
-      return { action: "timed_out", patch: { status: "timed_out" } };
+      return { action: "timed_out", patch: { status: "timed_out", messages: data.messages } };
     }
   }
 
   // 2. Expired status → timed_out (semantic: Devin itself gave up)
   if (data.statusEnum === "expired") {
-    return { action: "timed_out", patch: { status: "timed_out" } };
+    return { action: "timed_out", patch: { status: "timed_out", messages: data.messages } };
   }
 
   // 3. Terminal states (finished / stopped)
@@ -227,7 +252,22 @@ export function interpretPollResult(
   }
 
   // 4. Non-terminal: early scoping completion (output appeared before session ended)
+  //    But if open_questions is non-empty, keep polling so the user can answer
   if (sessionType === "scoping" && data.structuredOutput) {
+    const parsed = parseStructuredOutput(data.structuredOutput);
+    if (parsed && parsed.open_questions.length > 0) {
+      return {
+        action: "continue",
+        nextPollCategory: "scoping",
+        patch: {
+          status: "scoped",
+          confidence: parsed.confidence,
+          scoping: parsed,
+          scoped_at: now,
+          messages: data.messages,
+        },
+      } as PollResult;
+    }
     return scopingTerminal(data, now);
   }
 
@@ -247,6 +287,7 @@ export function interpretPollResult(
       patch: {
         status: "blocked",
         blocker: { what_happened: whatHappened, suggestion },
+        messages: data.messages,
       },
     };
   }
@@ -261,6 +302,7 @@ export function interpretPollResult(
           what_happened: "Devin session went to sleep due to inactivity",
           suggestion: "Click Retry to start a new session with your previous context",
         },
+        messages: data.messages,
       },
     };
   }
@@ -308,12 +350,13 @@ function scopingTerminal(
         confidence: parsed?.confidence ?? "yellow",
         scoping: parsed,
         scoped_at: now,
+        messages: data.messages,
       },
     };
   }
   return {
     action: "scoped",
-    patch: { status: "scoped", scoped_at: now },
+    patch: { status: "scoped", scoped_at: now, messages: data.messages },
   };
 }
 
@@ -336,7 +379,7 @@ function fixingTerminal(
       : null;
     return {
       action: "done",
-      patch: { status: "done", completed_at: now, pr: prInfo },
+      patch: { status: "done", completed_at: now, pr: prInfo, messages: data.messages },
     };
   }
 
@@ -358,6 +401,6 @@ function fixingTerminal(
 
   return {
     action: "done",
-    patch: { status: "done", completed_at: now },
+    patch: { status: "done", completed_at: now, messages: data.messages },
   };
 }

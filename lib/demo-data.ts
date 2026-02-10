@@ -46,6 +46,7 @@ export function getDemoIssues(): DashboardIssue[] {
       fix_progress: null,
       blocker: null,
       pr: null,
+      messages: [],
       steps: [],
       scoping_session: null,
       fix_session: null,
@@ -97,6 +98,7 @@ export function getDemoIssues(): DashboardIssue[] {
       fix_progress: null,
       blocker: null,
       pr: null,
+      messages: [],
       steps: [],
       scoping_session: null,
       fix_session: null,
@@ -154,6 +156,7 @@ export function getDemoIssues(): DashboardIssue[] {
       fix_progress: null,
       blocker: null,
       pr: null,
+      messages: [],
       steps: [],
       scoping_session: null,
       fix_session: null,
@@ -212,6 +215,7 @@ export function getDemoIssues(): DashboardIssue[] {
       fix_progress: null,
       blocker: null,
       pr: null,
+      messages: [],
       steps: [],
       scoping_session: null,
       fix_session: null,
@@ -257,6 +261,7 @@ export function getDemoIssues(): DashboardIssue[] {
       fix_progress: null,
       blocker: null,
       pr: null,
+      messages: [],
       steps: [],
       scoping_session: null,
       fix_session: null,
@@ -305,6 +310,7 @@ export function getDemoIssues(): DashboardIssue[] {
       fix_progress: null,
       blocker: null,
       pr: null,
+      messages: [],
       steps: [],
       scoping_session: null,
       fix_session: null,
@@ -364,6 +370,7 @@ export function getDemoIssues(): DashboardIssue[] {
       },
       blocker: null,
       pr: null,
+      messages: [],
       steps: [
         { label: "Update error handler in health.ts", status: "done" },
         {
@@ -510,6 +517,7 @@ export function getDemoIssues(): DashboardIssue[] {
           },
         ],
       },
+      messages: [],
       steps: [
         { label: "Update error handler in health.ts", status: "done" },
         { label: "Add try-catch for DB connection", status: "done" },
@@ -593,6 +601,7 @@ export function getDemoIssues(): DashboardIssue[] {
           "Add a .isHealthy() method to the DBPool class. This would require modifying src/lib/pool.ts \u2014 a new file not in the original plan.",
       },
       pr: null,
+      messages: [],
       steps: [
         { label: "Update error handler in health.ts", status: "done" },
         {
@@ -662,6 +671,7 @@ export function getDemoIssues(): DashboardIssue[] {
       fix_progress: null,
       blocker: null,
       pr: null,
+      messages: [],
       steps: [
         { label: "Create webhook registration endpoint", status: "done" },
         { label: "Build delivery queue", status: "pending" },
@@ -723,6 +733,7 @@ export function getDemoIssues(): DashboardIssue[] {
       fix_progress: null,
       blocker: null,
       pr: null,
+      messages: [],
       steps: [
         { label: "Set up Apollo Server", status: "done" },
         { label: "Define GraphQL schema", status: "done" },
@@ -798,6 +809,7 @@ export function getDemoIssues(): DashboardIssue[] {
       },
       blocker: null,
       pr: null,
+      messages: [],
       steps: [
         {
           label: "Analyzed rate limiter code",
@@ -881,6 +893,7 @@ export function getDemoIssues(): DashboardIssue[] {
       },
       blocker: null,
       pr: null,
+      messages: [],
       steps: [
         { label: "Update ESLint config to v6 recommended rules", status: "done" },
         { label: "Remove deprecated rule overrides", status: "done" },
