@@ -64,3 +64,5 @@ export const CONFIDENCE_SORT_ORDER: Record<ConfidenceLevel, number> = {
 };
 
 export const ISSUE_REFRESH_INTERVAL = 60_000; // 60 seconds
+
+export const DEFAULT_REPO_OWNER = "natanwei";

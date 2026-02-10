@@ -20,6 +20,7 @@ import {
 import {
   CONFIDENCE_SORT_ORDER,
   ISSUE_REFRESH_INTERVAL,
+  DEFAULT_REPO_OWNER,
 } from "@/lib/constants";
 import { useApiKeys, apiKeyHeaders } from "@/lib/api-keys";
 import { decideRetryPath } from "@/lib/retry";
@@ -248,6 +249,13 @@ export default function Dashboard({
   const filteredIssues = useMemo(
     () => filterAndSortIssues(state.issues, state.filter, state.sortBy),
     [state.issues, state.filter, state.sortBy]
+  );
+
+  const canFix = useMemo(
+    () =>
+      (state.repo?.owner.toLowerCase() === DEFAULT_REPO_OWNER) ||
+      (!!keys.devinApiKey && !!keys.githubToken),
+    [state.repo?.owner, keys.devinApiKey, keys.githubToken]
   );
 
   // --- Toast (demo mode + 403 warnings) ---
@@ -1101,6 +1109,7 @@ Do NOT start implementing the fix — only provide the updated analysis.`;
             lastMainCommitDate={state.lastMainCommitDate}
             activeSession={state.activeSession}
             acuLimitFixing={keys.acuLimitFixing}
+            canFix={canFix}
           />
         </div>
       )}
