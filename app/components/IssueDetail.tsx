@@ -54,7 +54,7 @@ export default function IssueDetail({
         return "#f59e0b";
       case "done":
       case "pr_open":
-        return "#22c55e";
+        return "#262626";
       case "failed":
         return "#ef4444";
       case "timed_out":

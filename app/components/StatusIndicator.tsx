@@ -2,7 +2,7 @@
 
 import { IssueStatus } from "@/lib/types";
 import { STATUS_LABELS } from "@/lib/constants";
-import { RefreshCw, Check, Clock, XCircle, AlertTriangle } from "lucide-react";
+import { RefreshCw, Clock, XCircle, AlertTriangle } from "lucide-react";
 
 interface StatusIndicatorProps {
   status: IssueStatus;
@@ -31,8 +31,7 @@ export default function StatusIndicator({ status }: StatusIndicatorProps) {
     case "done":
     case "pr_open":
       return (
-        <span className="flex items-center gap-1.5 text-accent-green text-sm">
-          <Check className="h-3 w-3" />
+        <span className="flex items-center gap-1.5 text-text-muted text-sm">
           <span>{status === "pr_open" ? "View PR →" : "Done"}</span>
         </span>
       );
