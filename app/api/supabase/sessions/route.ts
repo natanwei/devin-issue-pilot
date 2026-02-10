@@ -20,11 +20,12 @@ export async function GET(req: NextRequest) {
 
 export async function PATCH(req: NextRequest) {
   try {
-    const { repo, issue_number, pr } = await req.json();
+    const body = await req.json();
+    const { repo, issue_number, ...fields } = body;
     if (!repo || !issue_number) {
       return NextResponse.json({ error: "Missing repo or issue_number" }, { status: 400 });
     }
-    await upsertIssueSession({ repo, issue_number, pr });
+    await upsertIssueSession({ repo, issue_number, ...fields });
     return NextResponse.json({ ok: true });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unknown error";

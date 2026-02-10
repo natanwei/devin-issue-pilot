@@ -65,7 +65,14 @@ Respond with structured JSON:
   "open_questions": ["..."]
 }
 
-IMPORTANT: Your JSON analysis MUST appear in your message wrapped in \`\`\`json fences. This is how the dashboard reads your analysis.`;
+IMPORTANT: Your JSON analysis MUST appear in your message wrapped in \`\`\`json fences. This is how the dashboard reads your analysis.
+
+FOLLOW-UP HANDLING: If you receive follow-up messages from the user answering your open questions or providing clarification, you MUST:
+1. Re-analyze the issue incorporating the new information
+2. Output a NEW \`\`\`json code block with your UPDATED analysis (same schema as above)
+3. Update your confidence level honestly — upgrade to green only if all questions are truly resolved, stay yellow/red if you still have concerns or open questions
+4. If you still have questions after the clarification, include them in the updated open_questions array
+5. Do NOT start implementing the fix — only provide the updated analysis JSON`;
 
   const res = await fetch(`${DEVIN_API_BASE}/sessions`, {
     method: "POST",
@@ -100,6 +107,8 @@ export async function createFixSession(params: {
     files_to_modify: string[];
     action_plan: string[];
     tests_needed: string;
+    risks?: string[];
+    confidence_reason?: string;
   };
   previousContext?: string;
 }): Promise<CreateSessionResponse> {
@@ -111,17 +120,34 @@ export async function createFixSession(params: {
 **Scoping Analysis**:
 - Current Behavior: ${params.scopingResult.current_behavior}
 - Requested Fix: ${params.scopingResult.requested_fix}
-- Files to Modify: ${params.scopingResult.files_to_modify.join(", ")}
-- Tests Needed: ${params.scopingResult.tests_needed}
+- Confidence Reason: ${params.scopingResult.confidence_reason || "N/A"}
+
+**Files to Modify**:
+${params.scopingResult.files_to_modify.map((f) => `- ${f}`).join("\n")}
 
 **Action Plan**:
 ${params.scopingResult.action_plan.map((s, i) => `${i + 1}. ${s}`).join("\n")}
 
-Please implement the fix following the action plan above. Create a pull request when done.`;
+**Tests Needed**:
+${params.scopingResult.tests_needed}
+
+**Known Risks**:
+${(params.scopingResult.risks ?? []).length > 0 ? params.scopingResult.risks!.map((r) => `- ${r}`).join("\n") : "None identified"}
+
+**Instructions**:
+1. Follow the action plan step by step
+2. Stay within scope — don't refactor unrelated code
+3. Write the tests described in "Tests Needed" and ensure they pass
+4. Be mindful of the known risks listed above
+5. Commit with clear, descriptive commit messages
+6. Create a PR with a clear title referencing issue #${params.issueNumber} and a description summarizing the changes
+7. If you encounter a blocker or need clarification, ask — don't guess`;
 
   if (params.previousContext) {
     prompt += `\n\n**Previous Session Context**:\n${params.previousContext}`;
   }
+
+  prompt += `\n\nPlease implement the fix following the action plan above. Create a pull request when done.`;
 
   // Use a timestamped tag when retrying to avoid idempotent reuse of sleeping sessions
   const tag = params.previousContext
