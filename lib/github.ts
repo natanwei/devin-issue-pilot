@@ -167,6 +167,66 @@ export async function getPRDetails(
   };
 }
 
+export interface GitHubComment {
+  id: number;
+  body: string;
+  user: { login: string } | null;
+  created_at: string;
+  html_url: string;
+}
+
+export async function createIssueComment(
+  owner: string,
+  repo: string,
+  issueNumber: number,
+  body: string,
+  githubToken?: string,
+): Promise<GitHubComment> {
+  const octokit = getOctokit(githubToken);
+  const { data } = await octokit.issues.createComment({
+    owner,
+    repo,
+    issue_number: issueNumber,
+    body,
+  });
+  return {
+    id: data.id,
+    body: data.body ?? "",
+    user: data.user ? { login: data.user.login } : null,
+    created_at: data.created_at,
+    html_url: data.html_url,
+  };
+}
+
+export async function listIssueComments(
+  owner: string,
+  repo: string,
+  issueNumber: number,
+  since?: string,
+  githubToken?: string,
+): Promise<GitHubComment[]> {
+  const octokit = getOctokit(githubToken);
+  const params: Parameters<typeof octokit.issues.listComments>[0] = {
+    owner,
+    repo,
+    issue_number: issueNumber,
+    per_page: 50,
+    sort: "created",
+    direction: "asc",
+  };
+  if (since) {
+    params.since = since;
+  }
+  const { data } = await octokit.issues.listComments(params);
+  return data.map((c) => ({
+    id: c.id,
+    body: c.body ?? "",
+    user: c.user ? { login: c.user.login } : null,
+    created_at: c.created_at,
+    html_url: c.html_url,
+  }));
+}
+
 export function parsePatch(patch: string): DiffLine[] {
   return patch
     .split("\n")
