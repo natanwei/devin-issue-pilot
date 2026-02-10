@@ -11,6 +11,8 @@ export type IssueStatus =
   | "aborted"
   | "done";
 
+export type StatusFilter = "pending" | "active" | "closed";
+
 export type ConfidenceLevel = "green" | "yellow" | "red";
 
 export type DevinStatusEnum =
@@ -134,7 +136,7 @@ export interface DashboardIssue {
 
 export interface FilterState {
   confidence: ConfidenceLevel | "all";
-  status: IssueStatus | "all";
+  status: StatusFilter | "all";
 }
 
 export interface DashboardState {
