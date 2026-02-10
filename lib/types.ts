@@ -158,7 +158,7 @@ export interface FilterState {
 
 export interface DashboardState {
   mode: "demo" | "live";
-  repo: { owner: string; name: string } | null;
+  repo: { owner: string; name: string; displayName?: string } | null;
   issues: DashboardIssue[];
   expandedIssueId: number | null;
   activeSession: {
@@ -178,7 +178,7 @@ export interface DashboardState {
 
 export type DashboardAction =
   | { type: "SET_MODE"; mode: "demo" | "live" }
-  | { type: "SET_REPO"; repo: { owner: string; name: string } }
+  | { type: "SET_REPO"; repo: { owner: string; name: string; displayName?: string } }
   | { type: "DISCONNECT" }
   | { type: "SET_ISSUES"; issues: DashboardIssue[] }
   | {

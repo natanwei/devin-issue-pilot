@@ -4,7 +4,7 @@ import { Bot, X, RefreshCw, Settings } from "lucide-react";
 import { DashboardIssue } from "@/lib/types";
 
 interface TopBarProps {
-  repo: { owner: string; name: string };
+  repo: { owner: string; name: string; displayName?: string };
   mode: "demo" | "live";
   initialMode: "demo" | "live";
   issues: DashboardIssue[];
@@ -51,7 +51,7 @@ export default function TopBar({
         <span className="text-text-muted text-sm hidden sm:inline">·</span>
         <div className="flex items-center gap-2 bg-elevated rounded-full px-2.5 py-1 h-7 min-w-0">
           <span className="text-text-secondary text-xs font-mono truncate">
-            {mode === "demo" ? "sample/project" : `${repo.owner}/${repo.name}`}
+            {mode === "demo" ? "sample/project" : (repo.displayName || `${repo.owner}/${repo.name}`)}
           </span>
           <button
             onClick={onDisconnect}

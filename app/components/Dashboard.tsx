@@ -294,6 +294,14 @@ export default function Dashboard({
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const issues: DashboardIssue[] = raw.map((r: any) => createPendingIssue(r));
 
+      // Extract canonical repo name from first issue's GitHub URL
+      if (raw.length > 0 && raw[0].html_url) {
+        const m = raw[0].html_url.match(/github\.com\/([^/]+\/[^/]+)/);
+        if (m) {
+          dispatch({ type: "SET_REPO", repo: { owner, name, displayName: m[1] } });
+        }
+      }
+
       // Hydrate from Supabase (merge persisted session data onto fresh GitHub issues)
       try {
         const sessionsRes = await fetch(
