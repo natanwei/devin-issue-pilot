@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { buildIssueMetaText, getTimeSince } from "@/app/components/IssueRow";
+import { buildIssueMetaText, getTimeSince } from "@/lib/formatting";
 
 beforeEach(() => {
   vi.useFakeTimers();
