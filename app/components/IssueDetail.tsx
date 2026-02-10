@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { DashboardIssue, DashboardAction } from "@/lib/types";
 import { CONFIDENCE_CONFIG } from "@/lib/constants";
 import DevinQuestions from "./DevinQuestions";
@@ -44,6 +44,36 @@ function SectionLabel({ children }: { children: React.ReactNode }) {
     <span className="text-text-muted text-[11px] font-semibold uppercase tracking-wider">
       {children}
     </span>
+  );
+}
+
+function ConversationThread({ messages }: { messages: DashboardIssue["messages"] }) {
+  const endRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
+
+  if (!messages || messages.length === 0) return null;
+
+  return (
+    <div className="max-h-64 overflow-y-auto flex flex-col gap-2 bg-[#121212] rounded-md p-3 border border-border-subtle">
+      {messages.map((m, idx) => (
+        <div
+          key={idx}
+          className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}
+        >
+          <div
+            className={`max-w-[85%] whitespace-pre-wrap text-sm px-3 py-2 rounded-lg ${
+              m.role === "user"
+                ? "bg-accent-blue/20 text-text-primary"
+                : "bg-[#1a1a1a] text-text-secondary"
+            }`}
+            title={new Date(m.timestamp).toLocaleString()}
+          >
+            {m.text}
+          </div>
+        </div>
+      ))}
+      <div ref={endRef} />
+    </div>
   );
 }
 
@@ -252,12 +282,14 @@ function ScopedView({
       <DetailGrid issue={issue} />
 
       {(isYellow || isRed) && questions.length > 0 && (
-        <DevinQuestions
-          questions={questions}
-          color={isRed ? "red" : "amber"}
-          githubUrl={issue.github_url}
-          githubCommentUrl={issue.github_comment_url}
-        />
+        <>
+          <DevinQuestions
+            questions={questions}
+            color={isRed ? "red" : "amber"}
+            githubCommentUrl={issue.github_comment_url}
+          />
+          <ConversationThread messages={issue.messages || []} />
+        </>
       )}
 
       {(isYellow || isRed) && (
@@ -523,6 +555,8 @@ function BlockedView({
           </p>
         </div>
       )}
+
+      <ConversationThread messages={issue.messages || []} />
 
       <MessageInput
         color="amber"

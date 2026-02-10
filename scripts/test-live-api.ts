@@ -567,7 +567,7 @@ async function step8_dataFlowTrace(): Promise<string> {
     timeoutLimit: 15 * 60_000,
   });
   log(`  action: ${pollResult.action}`);
-  if ("patch" in pollResult) {
+  if ("patch" in pollResult && pollResult.patch) {
     log(`  patch.status: ${pollResult.patch.status}`);
     log(`  patch.confidence: ${pollResult.patch.confidence ?? "null"}`);
     log(`  patch.scoping: ${pollResult.patch.scoping ? "populated" : "null"}`);

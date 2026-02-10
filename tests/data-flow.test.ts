@@ -388,6 +388,116 @@ describe("Confidence → UI state mapping", () => {
 // Wall-clock timeout through pipeline
 // ---------------------------------------------------------------------------
 
+// ---------------------------------------------------------------------------
+// extractConversationMessages (tested via parseSessionResponse)
+// ---------------------------------------------------------------------------
+
+describe("extractConversationMessages via parseSessionResponse", () => {
+  it("returns empty array when raw messages is undefined", () => {
+    const parsed = parseSessionResponse({
+      ...RAW_SCOPING_COMPLETE,
+      messages: undefined as unknown as typeof RAW_SCOPING_COMPLETE.messages,
+    });
+    expect(parsed.messages).toEqual([]);
+  });
+
+  it("returns empty array when raw messages is empty", () => {
+    const parsed = parseSessionResponse({
+      ...RAW_SCOPING_COMPLETE,
+      messages: [],
+    });
+    expect(parsed.messages).toEqual([]);
+  });
+
+  it("maps devin_message type to role devin", () => {
+    const parsed = parseSessionResponse({
+      ...RAW_SCOPING_COMPLETE,
+      messages: [
+        { type: "devin_message", message: "Hello from Devin" },
+      ],
+    });
+    expect(parsed.messages).toHaveLength(1);
+    expect(parsed.messages[0].role).toBe("devin");
+    expect(parsed.messages[0].text).toBe("Hello from Devin");
+    expect(parsed.messages[0].source).toBe("app");
+  });
+
+  it("maps user_message type to role user", () => {
+    const parsed = parseSessionResponse({
+      ...RAW_SCOPING_COMPLETE,
+      messages: [
+        { type: "user_message", message: "Hello from user" },
+      ],
+    });
+    expect(parsed.messages).toHaveLength(1);
+    expect(parsed.messages[0].role).toBe("user");
+    expect(parsed.messages[0].text).toBe("Hello from user");
+  });
+
+  it("treats undefined type as devin", () => {
+    const parsed = parseSessionResponse({
+      ...RAW_SCOPING_COMPLETE,
+      messages: [
+        { message: "No type field" },
+      ],
+    });
+    expect(parsed.messages).toHaveLength(1);
+    expect(parsed.messages[0].role).toBe("devin");
+  });
+
+  it("uses content as fallback when message is missing", () => {
+    const parsed = parseSessionResponse({
+      ...RAW_SCOPING_COMPLETE,
+      messages: [
+        { type: "devin_message", content: "Fallback content" },
+      ],
+    });
+    expect(parsed.messages[0].text).toBe("Fallback content");
+  });
+
+  it("prefers message over content when both present", () => {
+    const parsed = parseSessionResponse({
+      ...RAW_SCOPING_COMPLETE,
+      messages: [
+        { type: "devin_message", message: "Primary", content: "Secondary" },
+      ],
+    });
+    expect(parsed.messages[0].text).toBe("Primary");
+  });
+
+  it("handles mixed devin and user messages in order", () => {
+    const parsed = parseSessionResponse({
+      ...RAW_SCOPING_COMPLETE,
+      updated_at: "2026-02-08T10:05:00Z",
+      messages: [
+        { type: "devin_message", message: "Q1?" },
+        { type: "user_message", message: "A1" },
+        { type: "devin_message", message: "Thanks" },
+      ],
+    });
+    expect(parsed.messages).toHaveLength(3);
+    expect(parsed.messages[0].role).toBe("devin");
+    expect(parsed.messages[1].role).toBe("user");
+    expect(parsed.messages[2].role).toBe("devin");
+    expect(parsed.messages[2].timestamp).toBe("2026-02-08T10:05:00Z");
+    const t0 = new Date(parsed.messages[0].timestamp).getTime();
+    const t1 = new Date(parsed.messages[1].timestamp).getTime();
+    const t2 = new Date(parsed.messages[2].timestamp).getTime();
+    expect(t0).toBeLessThan(t1);
+    expect(t1).toBeLessThan(t2);
+  });
+
+  it("returns empty text for messages with neither message nor content", () => {
+    const parsed = parseSessionResponse({
+      ...RAW_SCOPING_COMPLETE,
+      messages: [
+        { type: "devin_message" },
+      ],
+    });
+    expect(parsed.messages[0].text).toBe("");
+  });
+});
+
 describe("Wall-clock timeout through pipeline", () => {
   it("scoping session that exceeds 15 min → timed_out", () => {
     const parsed = parseSessionResponse({

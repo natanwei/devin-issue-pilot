@@ -24,6 +24,7 @@ import {
   ISSUE_REFRESH_INTERVAL,
 } from "@/lib/constants";
 import { interpretPollResult } from "@/lib/parsers";
+import type { PollResult } from "@/lib/parsers";
 import { useApiKeys, apiKeyHeaders } from "@/lib/api-keys";
 import { getDemoIssues } from "@/lib/demo-data";
 import {
@@ -93,9 +94,24 @@ function dashboardReducer(
     case "UPDATE_ISSUE":
       return {
         ...state,
-        issues: state.issues.map((i) =>
-          i.number === action.issueNumber ? { ...i, ...action.patch } : i
-        ),
+        issues: state.issues.map((i) => {
+          if (i.number !== action.issueNumber) return i;
+          const patch = action.patch as Partial<DashboardIssue>;
+          if (patch && patch.messages) {
+            const existing = i.messages || [];
+            const incoming = patch.messages || [];
+            const mergedMap = new Map<string, typeof existing[number]>();
+            for (const m of [...existing, ...incoming]) {
+              const key = `${m.role}|${m.text}|${m.timestamp}`;
+              mergedMap.set(key, m);
+            }
+            const merged = Array.from(mergedMap.values()).sort(
+              (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime(),
+            );
+            return { ...i, ...patch, messages: merged } as DashboardIssue;
+          }
+          return { ...i, ...patch } as DashboardIssue;
+        }),
       };
 
     case "TOGGLE_EXPAND":
@@ -300,6 +316,7 @@ export default function Dashboard({
           blocker: null,
           pr: null,
           steps: [],
+          messages: [],
           scoping_session: null,
           fix_session: null,
           last_devin_comment_id: null,
@@ -340,6 +357,7 @@ export default function Dashboard({
                 pr: (p.pr as PRInfo) || null,
                 steps: (p.steps as StepItem[]) || [],
                 files_info: (p.files_info as FileInfo[]) || [],
+                messages: (p.messages as DashboardIssue["messages"]) || [],
                 last_devin_comment_id: p.last_devin_comment_id ?? null,
                 last_devin_comment_at: p.last_devin_comment_at ?? null,
                 github_comment_url: p.github_comment_url ?? null,
@@ -383,6 +401,7 @@ export default function Dashboard({
                   pr: (s.pr as PRInfo) || null,
                   steps: (s.steps as StepItem[]) || [],
                   files_info: (s.files_info as FileInfo[]) || [],
+                  messages: (s.messages as DashboardIssue["messages"]) || [],
                   last_devin_comment_id: s.last_devin_comment_id ?? null,
                   last_devin_comment_at: s.last_devin_comment_at ?? null,
                   github_comment_url: s.github_comment_url ?? null,
@@ -605,6 +624,7 @@ export default function Dashboard({
           blocker: null,
           pr: null,
           steps: [],
+          messages: [],
           scoping_session: null,
           fix_session: null,
           last_devin_comment_id: null,
@@ -950,7 +970,8 @@ export default function Dashboard({
           break;
         }
 
-        case "continue":
+        case "continue": {
+          const cont = result as Extract<PollResult, { action: "continue" }>;
           // Inbound: also poll for replies during awaiting_reply
           if (issue.status === "awaiting_reply" && issue.last_devin_comment_at) {
             const activeSessionId =
@@ -959,10 +980,14 @@ export default function Dashboard({
               await pollInboundComments(issue, activeSessionId);
             }
           }
-          scheduleNextPoll(result.nextPollCategory);
+          if (cont.patch) {
+            dispatch({ type: "UPDATE_ISSUE", issueNumber, patch: cont.patch });
+          }
+          scheduleNextPoll(cont.nextPollCategory);
           break;
+        }
       }
-    } catch (err) {
+    } catch(err) {
       console.error("Polling error:", err);
       scheduleNextPoll("default");
     }
@@ -1055,6 +1080,19 @@ export default function Dashboard({
         pendingMessagesRef.current.set(activeIssueNumber, message);
       }
 
+      // Optimistically append user's message to the issue's local thread
+      const current = stateRef.current;
+      const target = current.issues.find((iss) => iss.fix_session?.session_id === sessionId || iss.scoping_session?.session_id === sessionId);
+      if (target) {
+        const optimistic = {
+          role: "user" as const,
+          text: message,
+          timestamp: new Date().toISOString(),
+          source: "app" as const,
+        };
+        dispatch({ type: "UPDATE_ISSUE", issueNumber: target.number, patch: { messages: [optimistic] } });
+      }
+
       const res = await fetch("/api/devin/message", {
         method: "POST",
         headers: { "Content-Type": "application/json", ...apiKeyHeaders(keysRef.current) },
@@ -1067,9 +1105,10 @@ export default function Dashboard({
         throw new Error(errorMsg);
       }
 
-      // Trigger immediate re-poll so blocker updates show quickly
+      // Trigger immediate re-poll so updates show quickly
       if (pollingRef.current) clearTimeout(pollingRef.current);
-      scheduleNextPoll("fixing");
+      const type = stateRef.current.activeSession?.type || (target && target.scoping_session?.session_id === sessionId ? "scoping" : "fixing");
+      scheduleNextPoll(type === "scoping" ? "scoping" : "fixing");
     },
     [state.mode, showDemoToast, scheduleNextPoll]
   );

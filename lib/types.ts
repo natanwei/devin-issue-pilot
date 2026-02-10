@@ -70,6 +70,13 @@ export interface BlockerInfo {
   suggestion: string;
 }
 
+export interface ConversationMessage {
+  role: "devin" | "user";
+  text: string;
+  timestamp: string;
+  source: "app" | "github";
+}
+
 export interface DiffLine {
   type: "add" | "remove" | "context";
   content: string;
@@ -121,6 +128,9 @@ export interface DashboardIssue {
   blocker: BlockerInfo | null;
   pr: PRInfo | null;
   steps: StepItem[];
+
+  // Conversation
+  messages: ConversationMessage[];
 
   // Session tracking
   scoping_session: SessionInfo | null;
