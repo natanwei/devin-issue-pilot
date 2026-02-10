@@ -33,7 +33,7 @@ export async function GET(req: NextRequest) {
       ?.at(-1);
     const blockerMessage = lastDevinMessage?.message || lastDevinMessage?.content || null;
 
-    // n8n already extracted and persisted → use Supabase as source of truth
+    // Supabase already has scoped result → use as source of truth
     if (supabaseRow?.status === "scoped" && supabaseRow?.scoping) {
       return NextResponse.json({
         sessionId: session.session_id,
@@ -48,7 +48,7 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    // Fallback: local extraction (n8n hasn't written yet)
+    // Local extraction from Devin session
     const structuredOutput = session.structured_output
       || extractStructuredOutputFromMessages(session.messages)
       || null;
