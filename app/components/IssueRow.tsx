@@ -14,7 +14,7 @@ interface IssueRowProps {
   activeSession: DashboardState["activeSession"];
 }
 
-function getTimeSince(dateStr: string): string {
+export function getTimeSince(dateStr: string): string {
   const ms = Date.now() - new Date(dateStr).getTime();
   const minutes = Math.floor(ms / 60000);
   const hours = Math.floor(minutes / 60);
@@ -23,6 +23,18 @@ function getTimeSince(dateStr: string): string {
   if (hours > 0) return `${hours} hour${hours > 1 ? "s" : ""} ago`;
   if (minutes > 0) return `${minutes}m ago`;
   return "just now";
+}
+
+export function buildIssueMetaText(
+  fileCount: number,
+  totalLines: number,
+  createdAt: string | null | undefined,
+): string {
+  const parts: string[] = [];
+  if (fileCount > 0) parts.push(`${fileCount} file${fileCount > 1 ? "s" : ""}`);
+  if (totalLines > 0) parts.push(`~${totalLines} lines`);
+  if (createdAt) parts.push(getTimeSince(createdAt));
+  return parts.join(" · ");
 }
 
 export default function IssueRow({ issue, isExpanded, onToggle, lastMainCommitDate, activeSession }: IssueRowProps) {
@@ -88,9 +100,11 @@ export default function IssueRow({ issue, isExpanded, onToggle, lastMainCommitDa
         {isStale && (
           <span className="text-accent-amber mr-1.5">Outdated</span>
         )}
-        {fileCount > 0 && `${fileCount} file${fileCount > 1 ? "s" : ""}`}
-        {totalLines > 0 && ` · ~${totalLines} lines`}
-        {issue.created_at && ` · ${getTimeSince(issue.created_at)}`}
+        {(() => {
+          const meta = buildIssueMetaText(fileCount, totalLines, issue.created_at);
+          if (!meta) return null;
+          return isStale ? ` · ${meta}` : meta;
+        })()}
       </span>
 
       {/* Status indicator */}
