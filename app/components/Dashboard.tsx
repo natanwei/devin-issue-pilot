@@ -25,6 +25,7 @@ import {
 import { interpretPollResult } from "@/lib/parsers";
 import type { PollResult } from "@/lib/parsers";
 import { useApiKeys, apiKeyHeaders } from "@/lib/api-keys";
+import { decideRetryPath } from "@/lib/retry";
 import { getDemoIssues } from "@/lib/demo-data";
 import {
   formatScopingComment,
@@ -1292,27 +1293,16 @@ Do NOT start implementing the fix — only provide the updated analysis.`;
       if (!state.repo) return;
 
       const pendingMsg = pendingMessagesRef.current.get(issue.number);
-      const sessionId = issue.fix_session?.session_id;
-      const isWakeable = issue.status === "blocked" && sessionId;
+      const decision = decideRetryPath(issue, pendingMsg || undefined);
 
-      if (isWakeable) {
-        const parts: string[] = [];
-        if (issue.blocker) {
-          parts.push(`Previous blocker: "${issue.blocker.what_happened}"`);
-        }
-        if (pendingMsg) {
-          parts.push(`User response: "${pendingMsg}"`);
-          pendingMessagesRef.current.delete(issue.number);
-        }
-        const wakeMessage = parts.length > 0
-          ? `Please continue. ${parts.join("\n")}`
-          : "Please continue working on this issue.";
+      if (decision.path === "wake") {
+        if (pendingMsg) pendingMessagesRef.current.delete(issue.number);
 
         try {
           const res = await fetch("/api/devin/message", {
             method: "POST",
             headers: { "Content-Type": "application/json", ...apiKeyHeaders(keysRef.current) },
-            body: JSON.stringify({ sessionId, message: wakeMessage }),
+            body: JSON.stringify({ sessionId: decision.sessionId, message: decision.message }),
           });
 
           if (!res.ok) {
@@ -1323,6 +1313,11 @@ Do NOT start implementing the fix — only provide the updated analysis.`;
             throw new Error(data.error || `Wake message failed (${res.status})`);
           }
 
+          const body = await res.json().catch(() => null);
+          if (body && typeof body === "object" && "detail" in body) {
+            throw new Error("Session could not be woken (server returned detail response)");
+          }
+
           dispatch({
             type: "UPDATE_ISSUE",
             issueNumber: issue.number,
@@ -1331,7 +1326,7 @@ Do NOT start implementing the fix — only provide the updated analysis.`;
 
           dispatch({
             type: "SET_SESSION",
-            sessionId,
+            sessionId: decision.sessionId,
             sessionUrl: issue.fix_session!.session_url,
             issueNumber: issue.number,
             sessionType: "fixing",
@@ -1351,30 +1346,18 @@ Do NOT start implementing the fix — only provide the updated analysis.`;
 
           return;
         } catch {
-          // Wake failed (likely 404 / expired) — fall through to terminate+recreate
+          // Wake failed (404 / expired / detail response) — fall through to terminate+recreate
         }
       }
 
-      let previousContext: string | undefined;
-      if (issue.blocker || pendingMsg) {
-        const parts: string[] = [];
-        if (issue.blocker) {
-          parts.push(`A previous session asked: "${issue.blocker.what_happened}"`);
-          parts.push(`Suggestion was: "${issue.blocker.suggestion}"`);
-        }
-        if (pendingMsg) {
-          parts.push(`The user responded: "${pendingMsg}"`);
-          pendingMessagesRef.current.delete(issue.number);
-        }
-        previousContext = parts.join("\n");
-      }
+      if (pendingMsg) pendingMessagesRef.current.delete(issue.number);
 
-      if (sessionId) {
+      if (decision.path === "recreate" && decision.sessionId) {
         try {
           await fetch("/api/devin/terminate", {
             method: "POST",
             headers: { "Content-Type": "application/json", ...apiKeyHeaders(keysRef.current) },
-            body: JSON.stringify({ sessionId }),
+            body: JSON.stringify({ sessionId: decision.sessionId }),
           });
         } catch {
           // Best effort — session may already be terminated
@@ -1400,7 +1383,7 @@ Do NOT start implementing the fix — only provide the updated analysis.`;
         blocker: null,
         fix_session: null,
         steps: [],
-      }, previousContext);
+      }, decision.path === "recreate" ? decision.previousContext : undefined);
     },
     [handleStartFix, state.mode, state.repo, showDemoToast]
   );

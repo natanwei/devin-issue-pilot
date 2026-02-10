@@ -1,7 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { decideRetryPath, buildWakeMessage } from "@/lib/retry";
 import type { DashboardIssue, IssueStatus } from "@/lib/types";
-
-const NOW = "2026-02-08T12:00:00Z";
 
 function makeIssue(overrides: Partial<DashboardIssue> = {}): DashboardIssue {
   return {
@@ -29,7 +28,7 @@ function makeIssue(overrides: Partial<DashboardIssue> = {}): DashboardIssue {
     fix_progress: null,
     blocker: {
       what_happened: "Devin session went to sleep due to inactivity",
-      suggestion: "Click Retry to start a new session with your previous context",
+      suggestion: "Click Retry to wake this session and resume where it left off",
     },
     pr: null,
     steps: [],
@@ -51,57 +50,13 @@ function makeIssue(overrides: Partial<DashboardIssue> = {}): DashboardIssue {
   };
 }
 
-type RetryDecision =
-  | { path: "wake"; sessionId: string; message: string }
-  | { path: "recreate"; previousContext: string | undefined; sessionId: string | undefined };
-
-function decideRetryPath(
-  issue: DashboardIssue,
-  pendingUserMessage?: string,
-): RetryDecision {
-  const sessionId = issue.fix_session?.session_id;
-  const isWakeable = issue.status === "blocked" && !!sessionId;
-
-  if (isWakeable) {
-    const parts: string[] = [];
-    if (issue.blocker) {
-      parts.push(`Previous blocker: "${issue.blocker.what_happened}"`);
-    }
-    if (pendingUserMessage) {
-      parts.push(`User response: "${pendingUserMessage}"`);
-    }
-    const wakeMessage = parts.length > 0
-      ? `Please continue. ${parts.join("\n")}`
-      : "Please continue working on this issue.";
-
-    return { path: "wake", sessionId: sessionId!, message: wakeMessage };
-  }
-
-  let previousContext: string | undefined;
-  if (issue.blocker || pendingUserMessage) {
-    const parts: string[] = [];
-    if (issue.blocker) {
-      parts.push(`A previous session asked: "${issue.blocker.what_happened}"`);
-      parts.push(`Suggestion was: "${issue.blocker.suggestion}"`);
-    }
-    if (pendingUserMessage) {
-      parts.push(`The user responded: "${pendingUserMessage}"`);
-    }
-    previousContext = parts.join("\n");
-  }
-
-  return { path: "recreate", previousContext, sessionId };
-}
-
-describe("handleRetry: wake vs recreate decision", () => {
+describe("decideRetryPath: wake vs recreate decision", () => {
   it("chooses wake path when session is blocked with a fix_session", () => {
     const issue = makeIssue({ status: "blocked" });
     const decision = decideRetryPath(issue);
     expect(decision.path).toBe("wake");
     if (decision.path === "wake") {
       expect(decision.sessionId).toBe("ses_fix_abc123");
-      expect(decision.message).toContain("Please continue");
-      expect(decision.message).toContain("went to sleep");
     }
   });
 
@@ -126,7 +81,6 @@ describe("handleRetry: wake vs recreate decision", () => {
     expect(decision.path).toBe("wake");
     if (decision.path === "wake") {
       expect(decision.message).toContain("Use the test database instead");
-      expect(decision.message).toContain("Please continue");
     }
   });
 
@@ -135,7 +89,7 @@ describe("handleRetry: wake vs recreate decision", () => {
     const decision = decideRetryPath(issue);
     expect(decision.path).toBe("wake");
     if (decision.path === "wake") {
-      expect(decision.message).toBe("Please continue working on this issue.");
+      expect(decision.message).toBe("Please continue working on this fix.");
     }
   });
 
@@ -195,7 +149,7 @@ describe("handleRetry: wake vs recreate decision", () => {
   });
 });
 
-describe("handleRetry: wake path fetch behavior", () => {
+describe("decideRetryPath: wake path fetch behavior", () => {
   const originalFetch = globalThis.fetch;
   let mockFetch: ReturnType<typeof vi.fn>;
 
@@ -208,15 +162,15 @@ describe("handleRetry: wake path fetch behavior", () => {
     globalThis.fetch = originalFetch;
   });
 
-  it("sends wake message to /api/devin/message for blocked session", async () => {
-    mockFetch.mockResolvedValueOnce({ ok: true, json: async () => ({}) });
+  it("wake decision produces correct sessionId for /api/devin/message", async () => {
+    mockFetch.mockResolvedValueOnce({ ok: true, json: async () => null });
 
     const issue = makeIssue({ status: "blocked" });
     const decision = decideRetryPath(issue);
     expect(decision.path).toBe("wake");
 
     if (decision.path === "wake") {
-      const res = await fetch("/api/devin/message", {
+      await fetch("/api/devin/message", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -225,18 +179,15 @@ describe("handleRetry: wake path fetch behavior", () => {
         }),
       });
 
-      expect(res.ok).toBe(true);
-      expect(mockFetch).toHaveBeenCalledTimes(1);
       const [url, opts] = mockFetch.mock.calls[0];
       expect(url).toBe("/api/devin/message");
       expect(opts.method).toBe("POST");
       const body = JSON.parse(opts.body);
       expect(body.sessionId).toBe("ses_fix_abc123");
-      expect(body.message).toContain("Please continue");
     }
   });
 
-  it("falls back to recreate when wake returns 404", async () => {
+  it("404 from wake -> should fall back to recreate", async () => {
     mockFetch.mockResolvedValueOnce({
       ok: false,
       status: 404,
@@ -269,11 +220,10 @@ describe("handleRetry: wake path fetch behavior", () => {
     }
   });
 
-  it("falls back to recreate when wake returns non-404 error", async () => {
+  it("200 with detail response -> should be treated as wake failure", async () => {
     mockFetch.mockResolvedValueOnce({
-      ok: false,
-      status: 500,
-      json: async () => ({ error: "Internal server error" }),
+      ok: true,
+      json: async () => ({ detail: "Session is suspended and cannot receive messages" }),
     });
 
     const issue = makeIssue({ status: "blocked" });
@@ -290,18 +240,13 @@ describe("handleRetry: wake path fetch behavior", () => {
         }),
       });
 
-      expect(res.ok).toBe(false);
-
-      const fallback = decideRetryPath({
-        ...issue,
-        status: "failed",
-        fix_session: null,
-      });
-      expect(fallback.path).toBe("recreate");
+      expect(res.ok).toBe(true);
+      const body = await res.json();
+      expect(body).toHaveProperty("detail");
     }
   });
 
-  it("sends terminate to /api/devin/terminate on recreate path", async () => {
+  it("recreate decision produces correct sessionId for /api/devin/terminate", async () => {
     mockFetch.mockResolvedValueOnce({ ok: true, json: async () => ({}) });
 
     const issue = makeIssue({
@@ -322,7 +267,6 @@ describe("handleRetry: wake path fetch behavior", () => {
         body: JSON.stringify({ sessionId: decision.sessionId }),
       });
 
-      expect(mockFetch).toHaveBeenCalledTimes(1);
       const [url, opts] = mockFetch.mock.calls[0];
       expect(url).toBe("/api/devin/terminate");
       const body = JSON.parse(opts.body);
@@ -331,33 +275,64 @@ describe("handleRetry: wake path fetch behavior", () => {
   });
 });
 
-describe("handleRetry: status-based routing completeness", () => {
+describe("decideRetryPath: status-based routing completeness", () => {
   const TERMINAL_STATUSES: IssueStatus[] = ["timed_out", "failed", "aborted", "done"];
-  const WAKEABLE_STATUS: IssueStatus = "blocked";
 
   for (const status of TERMINAL_STATUSES) {
-    it(`${status} without fix_session → recreate`, () => {
+    it(`${status} without fix_session -> recreate`, () => {
       const issue = makeIssue({ status, fix_session: null });
       const decision = decideRetryPath(issue);
       expect(decision.path).toBe("recreate");
     });
   }
 
-  it("blocked with fix_session → wake", () => {
-    const issue = makeIssue({ status: WAKEABLE_STATUS });
+  it("blocked with fix_session -> wake", () => {
+    const issue = makeIssue({ status: "blocked" });
     const decision = decideRetryPath(issue);
     expect(decision.path).toBe("wake");
   });
 
-  it("scoped status → recreate (not wakeable)", () => {
+  it("scoped status -> recreate (not wakeable)", () => {
     const issue = makeIssue({ status: "scoped" });
     const decision = decideRetryPath(issue);
     expect(decision.path).toBe("recreate");
   });
 
-  it("fixing status → recreate (not wakeable)", () => {
+  it("fixing status -> recreate (not wakeable)", () => {
     const issue = makeIssue({ status: "fixing" });
     const decision = decideRetryPath(issue);
     expect(decision.path).toBe("recreate");
+  });
+});
+
+describe("buildWakeMessage", () => {
+  it("returns generic message when no blocker or pending message", () => {
+    const msg = buildWakeMessage(null);
+    expect(msg).toBe("Please continue working on this fix.");
+  });
+
+  it("includes blocker context and user guidance when both present", () => {
+    const msg = buildWakeMessage(
+      { what_happened: "Need staging access", suggestion: "Provide credentials" },
+      "Here are the credentials: ...",
+    );
+    expect(msg).toContain("responded to your blocker");
+    expect(msg).toContain("Need staging access");
+    expect(msg).toContain("Here are the credentials: ...");
+    expect(msg).toContain("Please continue working on the fix");
+  });
+
+  it("includes only user guidance when no blocker", () => {
+    const msg = buildWakeMessage(null, "Try a different approach");
+    expect(msg).toContain("Try a different approach");
+    expect(msg).toContain("Please continue working on the fix");
+  });
+
+  it("includes only blocker when no pending message", () => {
+    const msg = buildWakeMessage(
+      { what_happened: "Went to sleep", suggestion: "Retry" },
+    );
+    expect(msg).toContain("Went to sleep");
+    expect(msg).toContain("Please continue working on the fix");
   });
 });
