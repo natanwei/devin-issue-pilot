@@ -34,7 +34,9 @@ export async function GET(req: NextRequest) {
     const blockerMessage = lastDevinMessage?.message || lastDevinMessage?.content || null;
 
     // Supabase already has scoped result → use as source of truth
-    if (supabaseRow?.status === "scoped" && supabaseRow?.scoping) {
+    // Only use cache when the Devin session is actually terminal; during re-scoping
+    // (session running/blocked after user reply), we need fresh data from the API.
+    if (supabaseRow?.status === "scoped" && supabaseRow?.scoping && isTerminal(session.status_enum)) {
       return NextResponse.json({
         sessionId: session.session_id,
         statusEnum: session.status_enum,
