@@ -87,6 +87,21 @@ export function formatReadyComment(
   );
   lines.push("");
 
+  if (scoping.action_plan.length > 0) {
+    lines.push("**Plan:**");
+    for (const step of scoping.action_plan) {
+      lines.push(`- ${step}`);
+    }
+    lines.push("");
+  }
+
+  if (scoping.files_to_modify.length > 0) {
+    lines.push(
+      "**Files:** " + scoping.files_to_modify.map((f) => "`" + f + "`").join(", "),
+    );
+    lines.push("");
+  }
+
   lines.push("---");
   lines.push(`> Head to the dashboard to start the fix`);
   lines.push("");
