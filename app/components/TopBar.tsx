@@ -49,7 +49,7 @@ export default function TopBar({
         <span className="text-text-muted text-sm hidden sm:inline">·</span>
         <div className="flex items-center gap-2 bg-elevated rounded-full px-2.5 py-1 h-7 min-w-0">
           <span className="text-text-secondary text-xs font-mono truncate">
-            {repo.owner}/{repo.name}
+            {mode === "demo" ? "sample/project" : `${repo.owner}/${repo.name}`}
           </span>
           <button
             onClick={onDisconnect}

@@ -111,12 +111,9 @@ export default function RepoConnect({ onConnect }: RepoConnectProps) {
           {/* Demo link */}
           <button
             onClick={handleDemo}
-            className="text-sm text-text-muted hover:text-text-secondary transition-colors"
+            className="text-sm text-accent-blue underline underline-offset-2 hover:text-text-secondary transition-colors"
           >
-            Preview UI with sample data:{" "}
-            <span className="text-accent-blue underline underline-offset-2">
-              natan/devin-issue-pilot-demo
-            </span>
+            Preview UI with sample data
           </button>
         </div>
 
