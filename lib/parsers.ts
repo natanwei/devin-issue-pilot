@@ -228,7 +228,7 @@ export function interpretPollResult(
 
   // 1. Expired status → timed_out (semantic: Devin itself gave up)
   if (data.statusEnum === "expired") {
-    return { action: "timed_out", patch: { status: "timed_out", messages: data.messages } };
+    return { action: "timed_out", patch: { status: "timed_out", messages: data.messages, fix_session_updated_at: data.updatedAt } };
   }
 
   // 3. Terminal states (finished / stopped)
@@ -368,7 +368,7 @@ function fixingTerminal(
       : null;
     return {
       action: "done",
-      patch: { status: "done", completed_at: now, pr: prInfo, messages: data.messages },
+      patch: { status: "done", completed_at: now, pr: prInfo, messages: data.messages, fix_session_updated_at: data.updatedAt },
     };
   }
 
@@ -385,12 +385,13 @@ function fixingTerminal(
           blockers: [data.status || "Session stopped unexpectedly"],
         },
         messages: data.messages,
+        fix_session_updated_at: data.updatedAt,
       },
     };
   }
 
   return {
     action: "done",
-    patch: { status: "done", completed_at: now, messages: data.messages },
+    patch: { status: "done", completed_at: now, messages: data.messages, fix_session_updated_at: data.updatedAt },
   };
 }

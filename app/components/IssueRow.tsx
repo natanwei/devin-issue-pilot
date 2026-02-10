@@ -39,9 +39,12 @@ export default function IssueRow({ issue, isExpanded, onToggle, lastMainCommitDa
     new Date(lastMainCommitDate).getTime() > new Date(issue.scoped_at).getTime()
   );
 
-  const borderColor = issue.confidence
-    ? CONFIDENCE_CONFIG[issue.confidence].color
-    : "#262626";
+  const isTerminal = ["done", "pr_open", "failed", "timed_out", "aborted"].includes(effectiveStatus);
+  const borderColor = isTerminal
+    ? "#262626"
+    : issue.confidence
+      ? CONFIDENCE_CONFIG[issue.confidence].color
+      : "#262626";
 
   return (
     <button
@@ -52,7 +55,7 @@ export default function IssueRow({ issue, isExpanded, onToggle, lastMainCommitDa
       }}
     >
       {/* Confidence dot */}
-      <ConfidenceDot confidence={issue.confidence} />
+      <ConfidenceDot confidence={issue.confidence} status={effectiveStatus} />
 
       {/* Issue number */}
       <span className="text-text-muted font-mono text-sm w-10 flex-shrink-0">

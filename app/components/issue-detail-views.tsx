@@ -44,7 +44,7 @@ export function ScopedView({
     <>
       {isStale && (
         <div
-          className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 bg-[#1a1a1a] px-4 py-3 rounded-md"
+          className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 bg-elevated px-4 py-3 rounded-md"
           style={{ borderLeft: "3px solid #f59e0b" }}
         >
           <span className="text-accent-amber text-sm">
@@ -61,7 +61,7 @@ export function ScopedView({
       )}
       {issue.last_devin_comment_id && (
         <div
-          className="bg-[#1a1a1a] px-4 py-3 rounded-md"
+          className="bg-elevated px-4 py-3 rounded-md"
           style={{ borderLeft: "3px solid #f59e0b" }}
         >
           <span className="text-text-secondary text-sm">
@@ -243,7 +243,7 @@ export function BlockedView({
       {/* Blocker block */}
       {issue.blocker && (
         <div
-          className="bg-[#1a1a1a] p-4 flex flex-col gap-3"
+          className="bg-elevated p-4 flex flex-col gap-3"
           style={{ borderLeft: "3px solid #f59e0b" }}
         >
           <span className="text-accent-amber text-xs font-semibold uppercase tracking-wider">
@@ -394,7 +394,7 @@ export function FailedView({
     return (
       <>
         <div
-          className="bg-[#1a1a1a] p-4 flex flex-col gap-2"
+          className="bg-elevated p-4 flex flex-col gap-2"
           style={{ borderLeft: "3px solid #ef4444" }}
         >
           <span className="text-accent-red text-xs font-semibold uppercase tracking-wider">
@@ -428,7 +428,7 @@ export function FailedView({
     <>
       {/* What went wrong */}
       <div
-        className="bg-[#1a1a1a] p-4 flex flex-col gap-3"
+        className="bg-elevated p-4 flex flex-col gap-3"
         style={{ borderLeft: "3px solid #ef4444" }}
       >
         <span className="text-accent-red text-xs font-semibold uppercase tracking-wider">

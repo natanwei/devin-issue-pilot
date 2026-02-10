@@ -33,6 +33,7 @@ export interface IssueSessionRow {
   last_devin_comment_at?: string | null;
   github_comment_url?: string | null;
   forwarded_comment_ids?: number[];
+  fix_session_updated_at?: string | null;
 }
 
 /** Upsert a session row — creates if new, merges if existing */

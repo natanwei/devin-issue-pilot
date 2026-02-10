@@ -10,7 +10,7 @@ interface PRCardProps {
 export default function PRCard({ pr }: PRCardProps) {
   return (
     <div
-      className="rounded-r-lg bg-[#1a1a1a] p-4 flex flex-col gap-3"
+      className="rounded-r-lg bg-elevated p-4 flex flex-col gap-3"
       style={{ borderLeft: "3px solid #22c55e" }}
     >
       {/* PR title row */}

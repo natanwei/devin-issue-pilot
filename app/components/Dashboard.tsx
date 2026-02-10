@@ -330,6 +330,7 @@ export default function Dashboard({
                 scoped_at: p.scoped_at || null,
                 fix_started_at: p.fix_started_at || null,
                 completed_at: p.completed_at || null,
+                fix_session_updated_at: p.fix_session_updated_at || undefined,
               };
             }
           }

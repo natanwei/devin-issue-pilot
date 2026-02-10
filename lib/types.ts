@@ -135,6 +135,7 @@ export interface DashboardIssue {
   // Session tracking
   scoping_session: SessionInfo | null;
   fix_session: SessionInfo | null;
+  fix_session_updated_at?: string;
 
   // Comment tracking (GitHub comment bridge)
   last_devin_comment_id: number | null;

@@ -67,7 +67,7 @@ export default function TopBar({
         <span className="text-text-secondary hidden sm:inline">
           {totalIssues} issues
         </span>
-        <span className="text-[#444444] hidden sm:inline">·</span>
+        <span className="text-border-hover hidden sm:inline">·</span>
         <span className="hidden md:inline">
           {allScoped ? (
             <span className="text-accent-green">All scoped</span>
@@ -77,13 +77,13 @@ export default function TopBar({
             </span>
           )}
         </span>
-        <span className="text-[#444444] hidden md:inline">·</span>
+        <span className="text-border-hover hidden md:inline">·</span>
         <div className="flex items-center gap-3">
           <span className="text-accent-green">{greenCount}</span>
           <span className="text-accent-amber">{yellowCount}</span>
           <span className="text-accent-red">{redCount}</span>
         </div>
-        <span className="text-[#444444] hidden sm:inline">·</span>
+        <span className="text-border-hover hidden sm:inline">·</span>
         <button
           onClick={onRefresh}
           className="text-text-muted hover:text-text-secondary transition-colors"

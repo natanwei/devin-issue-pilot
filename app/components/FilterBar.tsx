@@ -132,7 +132,7 @@ export default function FilterBar({
               : "text-text-muted hover:text-text-secondary"
           }`}
         >
-          Pending{pendingCount > 0 && ` (${pendingCount})`}
+          Pending ({pendingCount})
         </button>
         <button
           onClick={() => handleStatus("active")}
@@ -142,7 +142,7 @@ export default function FilterBar({
               : "text-text-muted hover:text-text-secondary"
           }`}
         >
-          Active{activeCount > 0 && ` (${activeCount})`}
+          Active ({activeCount})
         </button>
         <button
           onClick={() => handleStatus("closed")}
@@ -152,7 +152,7 @@ export default function FilterBar({
               : "text-text-muted hover:text-text-secondary"
           }`}
         >
-          Closed{closedCount > 0 && ` (${closedCount})`}
+          Closed ({closedCount})
         </button>
       </div>
 

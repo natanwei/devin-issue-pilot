@@ -19,7 +19,7 @@ export function ConversationThread({ messages }: { messages: DashboardIssue["mes
   if (!messages || messages.length === 0) return null;
 
   return (
-    <div className="max-h-64 overflow-y-auto flex flex-col gap-2 bg-[#121212] rounded-md p-3 border border-border-subtle">
+    <div className="max-h-64 overflow-y-auto flex flex-col gap-2 bg-dp-card rounded-md p-3 border border-border-subtle">
       {messages.map((m, idx) => (
         <div
           key={idx}
@@ -188,9 +188,11 @@ export function SessionStats({ issue }: { issue: DashboardIssue }) {
   if (!session) return null;
 
   const start = new Date(session.started_at).getTime();
-  const end = session.updated_at
-    ? new Date(session.updated_at).getTime()
-    : Date.now();
+  const end = issue.fix_session_updated_at
+    ? new Date(issue.fix_session_updated_at).getTime()
+    : session.updated_at
+      ? new Date(session.updated_at).getTime()
+      : Date.now();
   const durationMs = end - start;
   const minutes = Math.floor(durationMs / 60000);
   const seconds = Math.floor((durationMs % 60000) / 1000);
@@ -199,7 +201,7 @@ export function SessionStats({ issue }: { issue: DashboardIssue }) {
   return (
     <div className="flex items-center gap-2 text-[13px]">
       <span className="text-text-secondary">
-        Duration: {durationStr} · ACUs: ~{(minutes / 15).toFixed(1)} · Tests: All green ✓
+        Duration: {durationStr} · ACUs: ~{(minutes / 15).toFixed(1)}
       </span>
     </div>
   );

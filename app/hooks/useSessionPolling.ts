@@ -67,6 +67,18 @@ export function useSessionPolling(
         case "failed":
           dispatch({ type: "UPDATE_ISSUE", issueNumber, patch: result.patch });
           dispatch({ type: "CLEAR_SESSION" });
+          if (current.repo) {
+            fetch("/api/supabase/sessions", {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                repo: `${current.repo.owner}/${current.repo.name}`,
+                issue_number: issueNumber,
+                status: result.patch.status,
+                fix_session_updated_at: result.patch.fix_session_updated_at,
+              }),
+            }).catch(() => {});
+          }
           break;
 
         case "scoped": {
@@ -148,15 +160,16 @@ export function useSessionPolling(
           }
           dispatch({ type: "UPDATE_ISSUE", issueNumber, patch: finalPatch });
           dispatch({ type: "CLEAR_SESSION" });
-          // Persist enriched PR data to Supabase
-          if (finalPatch.pr && current.repo) {
+          // Persist enriched PR data and timing to Supabase
+          if (current.repo) {
             fetch("/api/supabase/sessions", {
               method: "PATCH",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
                 repo: `${current.repo.owner}/${current.repo.name}`,
                 issue_number: issueNumber,
-                pr: finalPatch.pr,
+                ...(finalPatch.pr ? { pr: finalPatch.pr } : {}),
+                fix_session_updated_at: finalPatch.fix_session_updated_at,
               }),
             }).catch(() => {});
           }
