@@ -247,6 +247,7 @@ export default function Dashboard({
   const issueRefreshRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const scopingInProgressRef = useRef(false);
   const pendingMessagesRef = useRef<Map<number, string>>(new Map());
+  const forwardingRef = useRef<Set<number>>(new Set());
   const stateRef = useRef(state);
   stateRef.current = state;
 
@@ -714,9 +715,12 @@ export default function Dashboard({
 
   const pollInboundComments = useCallback(
     async (issue: DashboardIssue, sessionId: string): Promise<boolean> => {
-      const current = stateRef.current;
-      if (!current.repo || !issue.last_devin_comment_at) return false;
+      if (forwardingRef.current.has(issue.number)) return false;
+      forwardingRef.current.add(issue.number);
       try {
+        const current = stateRef.current;
+        if (!current.repo || !issue.last_devin_comment_at) return false;
+        try {
         const res = await fetch(
           `/api/github/comments?owner=${encodeURIComponent(current.repo.owner)}&repo=${encodeURIComponent(current.repo.name)}&issueNumber=${issue.number}&since=${encodeURIComponent(issue.last_devin_comment_at)}`,
           { headers: apiKeyHeaders(keysRef.current) },
@@ -817,6 +821,9 @@ export default function Dashboard({
       } catch {
         // Inbound comment polling failure is non-critical
         return false;
+      }
+      } finally {
+        forwardingRef.current.delete(issue.number);
       }
     },
     [],
