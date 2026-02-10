@@ -73,6 +73,30 @@ export function formatBlockedComment(
   return lines.join("\n");
 }
 
+export function formatReadyComment(
+  issueNumber: number,
+  scoping: ScopingResult,
+): string {
+  const lines: string[] = [];
+
+  lines.push(`### \u2705 **Clarification received \u2014 ready to fix**`);
+  lines.push("");
+
+  lines.push(
+    `**Confidence:** ${scoping.confidence} \u2014 ${scoping.confidence_reason}`,
+  );
+  lines.push("");
+
+  lines.push("---");
+  lines.push(`> Head to the dashboard to start the fix`);
+  lines.push("");
+  lines.push(
+    `<sub>\u{1F916} Posted by [Devin Issue Pilot](https://github.com/natanwei/devin-issue-pilot) \u2022 Issue #${issueNumber}</sub>`,
+  );
+
+  return lines.join("\n");
+}
+
 export function formatDoneComment(
   issueNumber: number,
   prUrl: string,

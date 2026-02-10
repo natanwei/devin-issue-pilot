@@ -28,6 +28,7 @@ import { useApiKeys, apiKeyHeaders } from "@/lib/api-keys";
 import { getDemoIssues } from "@/lib/demo-data";
 import {
   formatScopingComment,
+  formatReadyComment,
   formatBlockedComment,
   formatDoneComment,
   isDevinComment,
@@ -900,6 +901,14 @@ export default function Dashboard({
                 }).catch(() => {});
               }
             }
+          } else if (
+            patchConf === "green" &&
+            patchScoping &&
+            issue.forwarded_comment_ids.length > 0
+          ) {
+            // Re-scope after user reply came back green — confirm on GitHub
+            const body = formatReadyComment(issueNumber, patchScoping);
+            postGitHubComment(issueNumber, body).catch(() => {});
           }
           break;
         }
