@@ -20,16 +20,33 @@ import type { IssueActions } from "./IssueDetail";
 
 // --- ScopedView ---
 
+function ApiKeysHint({ onOpenSettings }: { onOpenSettings: () => void }) {
+  return (
+    <span className="text-text-muted text-sm">
+      🔑 Add your API keys in{" "}
+      <button
+        onClick={onOpenSettings}
+        className="text-accent-blue font-medium hover:underline"
+      >
+        Settings
+      </button>
+      {" "}to fix issues and open PRs on this repo.
+    </span>
+  );
+}
+
 export function ScopedView({
   issue,
   actions,
   lastMainCommitDate,
   acuLimitFixing,
+  canFix,
 }: {
   issue: DashboardIssue;
   actions: IssueActions;
   lastMainCommitDate?: string | null;
   acuLimitFixing: number;
+  canFix: boolean;
 }) {
   const isYellow = issue.confidence === "yellow";
   const isRed = issue.confidence === "red";
@@ -96,17 +113,21 @@ export function ScopedView({
       <div className="flex items-center justify-between w-full">
         <div className="flex items-center gap-3">
           {!isRed && (
-            <>
-              <button
-                onClick={() => actions.onStartFix(issue)}
-                className="bg-accent-blue hover:bg-accent-blue/90 text-white text-sm font-semibold px-5 py-2 rounded-md transition-colors"
-              >
-                Start Fix
-              </button>
-              <span className="text-text-muted text-[13px]">
-                {acuLimitFixing > 0 ? `Up to ${acuLimitFixing} ACUs` : "No ACU limit"}
-              </span>
-            </>
+            canFix ? (
+              <>
+                <button
+                  onClick={() => actions.onStartFix(issue)}
+                  className="bg-accent-blue hover:bg-accent-blue/90 text-white text-sm font-semibold px-5 py-2 rounded-md transition-colors"
+                >
+                  Start Fix
+                </button>
+                <span className="text-text-muted text-[13px]">
+                  {acuLimitFixing > 0 ? `Up to ${acuLimitFixing} ACUs` : "No ACU limit"}
+                </span>
+              </>
+            ) : (
+              <ApiKeysHint onOpenSettings={actions.onOpenSettings} />
+            )
           )}
         </div>
         <div className="flex items-center gap-4">
@@ -228,9 +249,11 @@ export function FixingView({
 export function BlockedView({
   issue,
   actions,
+  canFix,
 }: {
   issue: DashboardIssue;
   actions: IssueActions;
+  canFix: boolean;
 }) {
   const isCredentialIssue = issue.blocker?.suggestion.includes("Setup Guide") ?? false;
   const sessionId = issue.fix_session?.session_id;
@@ -287,23 +310,27 @@ export function BlockedView({
       {/* Footer */}
       <div className="flex items-center justify-between w-full">
         <div className="flex items-center gap-3">
-          {isSleeping ? (
-            <button
-              onClick={() => actions.onRetry(issue)}
-              className="inline-flex items-center gap-1.5 bg-accent-blue hover:bg-accent-blue/90 text-white text-sm font-semibold px-5 py-2 rounded-md transition-colors"
-            >
-              <RefreshCw className="h-3.5 w-3.5" />
-              Retry with Context
-            </button>
+          {canFix ? (
+            isSleeping ? (
+              <button
+                onClick={() => actions.onRetry(issue)}
+                className="inline-flex items-center gap-1.5 bg-accent-blue hover:bg-accent-blue/90 text-white text-sm font-semibold px-5 py-2 rounded-md transition-colors"
+              >
+                <RefreshCw className="h-3.5 w-3.5" />
+                Retry with Context
+              </button>
+            ) : (
+              <button
+                onClick={() => {
+                  if (sessionId) actions.onApprove(issue.number, sessionId);
+                }}
+                className="inline-flex items-center gap-1.5 bg-accent-blue hover:bg-accent-blue/90 text-white text-sm font-semibold px-5 py-2 rounded-md transition-colors"
+              >
+                Approve Suggestion
+              </button>
+            )
           ) : (
-            <button
-              onClick={() => {
-                if (sessionId) actions.onApprove(issue.number, sessionId);
-              }}
-              className="inline-flex items-center gap-1.5 bg-accent-blue hover:bg-accent-blue/90 text-white text-sm font-semibold px-5 py-2 rounded-md transition-colors"
-            >
-              Approve Suggestion
-            </button>
+            <ApiKeysHint onOpenSettings={actions.onOpenSettings} />
           )}
         </div>
         <div className="flex items-center gap-4">
@@ -390,10 +417,12 @@ export function FailedView({
   issue,
   actions,
   acuLimitFixing,
+  canFix,
 }: {
   issue: DashboardIssue;
   actions: IssueActions;
   acuLimitFixing: number;
+  canFix: boolean;
 }) {
   // Scope failure: no scoping data means the scoping API call itself failed
   if (!issue.scoping) {
@@ -454,15 +483,21 @@ export function FailedView({
       {/* Footer */}
       <div className="flex items-center justify-between w-full">
         <div className="flex items-center gap-2">
-          <button
-            onClick={() => actions.onRetry(issue)}
-            className="inline-flex items-center gap-1.5 border border-accent-blue text-accent-blue text-[13px] font-medium rounded-md px-4 py-1.5 hover:bg-accent-blue/10 transition-colors"
-          >
-            Retry Fix
-          </button>
-          <span className="text-text-muted text-xs">
-            This will start a new session
-          </span>
+          {canFix ? (
+            <>
+              <button
+                onClick={() => actions.onRetry(issue)}
+                className="inline-flex items-center gap-1.5 border border-accent-blue text-accent-blue text-[13px] font-medium rounded-md px-4 py-1.5 hover:bg-accent-blue/10 transition-colors"
+              >
+                Retry Fix
+              </button>
+              <span className="text-text-muted text-xs">
+                This will start a new session
+              </span>
+            </>
+          ) : (
+            <ApiKeysHint onOpenSettings={actions.onOpenSettings} />
+          )}
         </div>
         <div className="flex items-center gap-4">
           <button
@@ -497,9 +532,11 @@ export function FailedView({
 export function TimedOutView({
   issue,
   actions,
+  canFix,
 }: {
   issue: DashboardIssue;
   actions: IssueActions;
+  canFix: boolean;
 }) {
   return (
     <>
@@ -515,12 +552,16 @@ export function TimedOutView({
 
       {/* Footer */}
       <div className="flex items-center justify-between w-full">
-        <button
-          onClick={() => actions.onRetry(issue)}
-          className="inline-flex items-center gap-1.5 border border-accent-blue text-accent-blue text-[13px] font-medium rounded-md px-4 py-1.5 hover:bg-accent-blue/10 transition-colors"
-        >
-          Retry
-        </button>
+        {canFix ? (
+          <button
+            onClick={() => actions.onRetry(issue)}
+            className="inline-flex items-center gap-1.5 border border-accent-blue text-accent-blue text-[13px] font-medium rounded-md px-4 py-1.5 hover:bg-accent-blue/10 transition-colors"
+          >
+            Retry
+          </button>
+        ) : (
+          <ApiKeysHint onOpenSettings={actions.onOpenSettings} />
+        )}
         <div className="flex items-center gap-4">
           {issue.fix_session && (
             <a

@@ -31,6 +31,7 @@ interface IssueDetailProps {
   lastMainCommitDate?: string | null;
   activeSession: DashboardState["activeSession"];
   acuLimitFixing: number;
+  canFix: boolean;
 }
 
 export default function IssueDetail({
@@ -39,6 +40,7 @@ export default function IssueDetail({
   lastMainCommitDate,
   activeSession,
   acuLimitFixing,
+  canFix,
 }: IssueDetailProps) {
   const effectiveStatus: IssueStatus =
     activeSession?.issueNumber === issue.number
@@ -71,18 +73,18 @@ export default function IssueDetail({
     switch (effectiveStatus) {
       case "scoped":
       case "awaiting_reply":
-        return <ScopedView issue={issue} actions={actions} lastMainCommitDate={lastMainCommitDate} acuLimitFixing={acuLimitFixing} />;
+        return <ScopedView issue={issue} actions={actions} lastMainCommitDate={lastMainCommitDate} acuLimitFixing={acuLimitFixing} canFix={canFix} />;
       case "fixing":
         return <FixingView issue={issue} actions={actions} />;
       case "blocked":
-        return <BlockedView issue={issue} actions={actions} />;
+        return <BlockedView issue={issue} actions={actions} canFix={canFix} />;
       case "done":
       case "pr_open":
         return <DoneView issue={issue} acuLimitFixing={acuLimitFixing} />;
       case "failed":
-        return <FailedView issue={issue} actions={actions} acuLimitFixing={acuLimitFixing} />;
+        return <FailedView issue={issue} actions={actions} acuLimitFixing={acuLimitFixing} canFix={canFix} />;
       case "timed_out":
-        return <TimedOutView issue={issue} actions={actions} />;
+        return <TimedOutView issue={issue} actions={actions} canFix={canFix} />;
       case "aborted":
         return <AbortedView issue={issue} acuLimitFixing={acuLimitFixing} />;
       case "scoping": {
