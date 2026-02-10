@@ -62,7 +62,7 @@ export function useGitHubCommentBridge(
       try {
         const current = stateRef.current;
         if (!current.repo || !issue.last_devin_comment_at) return false;
-        try {
+
         const res = await fetch(
           `/api/github/comments?owner=${encodeURIComponent(current.repo.owner)}&repo=${encodeURIComponent(current.repo.name)}&issueNumber=${issue.number}&since=${encodeURIComponent(issue.last_devin_comment_at)}`,
           { headers: apiKeyHeaders(keysRef.current) },
@@ -163,7 +163,6 @@ export function useGitHubCommentBridge(
       } catch {
         // Inbound comment polling failure is non-critical
         return false;
-      }
       } finally {
         forwardingRef.current.delete(issue.number);
       }
