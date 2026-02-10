@@ -336,9 +336,13 @@ export function BlockedView({
 // --- DoneView ---
 
 export function DoneView({ issue, acuLimitFixing }: { issue: DashboardIssue; acuLimitFixing: number }) {
-  const completedSteps = issue.steps
+  const doneSteps = issue.steps
     .filter((s) => s.status === "done")
     .map((s) => s.label);
+  // Fallback: if no steps but scoping has action_plan, use those (fix succeeded = plan completed)
+  const completedSteps = doneSteps.length > 0
+    ? doneSteps
+    : (issue.scoping?.action_plan ?? []);
 
   return (
     <>
