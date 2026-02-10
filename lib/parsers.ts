@@ -289,7 +289,7 @@ export function interpretPollResult(
         status: "blocked",
         blocker: {
           what_happened: "Devin session went to sleep due to inactivity",
-          suggestion: "Click Retry to start a new session with your previous context",
+          suggestion: "Click Retry to wake this session and resume where it left off",
         },
         messages: data.messages,
       },

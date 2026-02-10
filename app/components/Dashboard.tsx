@@ -25,6 +25,7 @@ import {
 import { interpretPollResult } from "@/lib/parsers";
 import type { PollResult } from "@/lib/parsers";
 import { useApiKeys, apiKeyHeaders } from "@/lib/api-keys";
+import { decideRetryPath } from "@/lib/retry";
 import { getDemoIssues } from "@/lib/demo-data";
 import {
   formatScopingComment,
@@ -1296,37 +1297,80 @@ Do NOT start implementing the fix — only provide the updated analysis.`;
   const handleRetry = useCallback(
     async (issue: DashboardIssue) => {
       if (state.mode === "demo") { showDemoToast(); return; }
+      if (!state.repo) return;
 
-      // Build context from the previous session (blocker Q + pending user answer)
-      let previousContext: string | undefined;
       const pendingMsg = pendingMessagesRef.current.get(issue.number);
-      if (issue.blocker || pendingMsg) {
-        const parts: string[] = [];
-        if (issue.blocker) {
-          parts.push(`A previous session asked: "${issue.blocker.what_happened}"`);
-          parts.push(`Suggestion was: "${issue.blocker.suggestion}"`);
+      const decision = decideRetryPath(issue, pendingMsg || undefined);
+
+      if (decision.path === "wake") {
+        if (pendingMsg) pendingMessagesRef.current.delete(issue.number);
+
+        try {
+          const res = await fetch("/api/devin/message", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", ...apiKeyHeaders(keysRef.current) },
+            body: JSON.stringify({ sessionId: decision.sessionId, message: decision.message }),
+          });
+
+          if (!res.ok) {
+            const data = await res.json().catch(() => ({}));
+            if (res.status === 404) {
+              throw new Error(data.error || "Session expired on server");
+            }
+            throw new Error(data.error || `Wake message failed (${res.status})`);
+          }
+
+          const body = await res.json().catch(() => null);
+          if (body && typeof body === "object" && "detail" in body) {
+            throw new Error("Session could not be woken (server returned detail response)");
+          }
+
+          dispatch({
+            type: "UPDATE_ISSUE",
+            issueNumber: issue.number,
+            patch: { status: "fixing", blocker: null },
+          });
+
+          dispatch({
+            type: "SET_SESSION",
+            sessionId: decision.sessionId,
+            sessionUrl: issue.fix_session!.session_url,
+            issueNumber: issue.number,
+            sessionType: "fixing",
+          });
+
+          const repoStr = `${state.repo.owner}/${state.repo.name}`;
+          fetch("/api/supabase/sessions", {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              repo: repoStr,
+              issue_number: issue.number,
+              status: "fixing",
+              blocker: null,
+            }),
+          }).catch(() => {});
+
+          return;
+        } catch {
+          // Wake failed (404 / expired / detail response) — fall through to terminate+recreate
         }
-        if (pendingMsg) {
-          parts.push(`The user responded: "${pendingMsg}"`);
-          pendingMessagesRef.current.delete(issue.number);
-        }
-        previousContext = parts.join("\n");
       }
 
-      // Terminate the old session to avoid idempotent reuse
-      if (issue.fix_session?.session_id) {
+      if (pendingMsg) pendingMessagesRef.current.delete(issue.number);
+
+      if (decision.path === "recreate" && decision.sessionId) {
         try {
           await fetch("/api/devin/terminate", {
             method: "POST",
             headers: { "Content-Type": "application/json", ...apiKeyHeaders(keysRef.current) },
-            body: JSON.stringify({ sessionId: issue.fix_session.session_id }),
+            body: JSON.stringify({ sessionId: decision.sessionId }),
           });
         } catch {
           // Best effort — session may already be terminated
         }
       }
 
-      // Reset to scoped state and trigger a new fix
       dispatch({
         type: "UPDATE_ISSUE",
         issueNumber: issue.number,
@@ -1339,7 +1383,6 @@ Do NOT start implementing the fix — only provide the updated analysis.`;
           completed_at: null,
         },
       });
-      // Start fix with previous context
       handleStartFix({
         ...issue,
         status: "scoped",
@@ -1347,9 +1390,9 @@ Do NOT start implementing the fix — only provide the updated analysis.`;
         blocker: null,
         fix_session: null,
         steps: [],
-      }, previousContext);
+      }, decision.path === "recreate" ? decision.previousContext : undefined);
     },
-    [handleStartFix, state.mode, showDemoToast]
+    [handleStartFix, state.mode, state.repo, showDemoToast]
   );
 
   const handleApprove = useCallback(
