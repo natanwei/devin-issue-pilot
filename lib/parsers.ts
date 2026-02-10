@@ -395,6 +395,7 @@ function fixingTerminal(
           pr_url: null,
           blockers: [data.status || "Session stopped unexpectedly"],
         },
+        messages: data.messages,
       },
     };
   }
