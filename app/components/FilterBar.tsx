@@ -1,6 +1,6 @@
 "use client";
 
-import { ConfidenceLevel, DashboardIssue, FilterState, IssueStatus } from "@/lib/types";
+import { ConfidenceLevel, DashboardIssue, FilterState, StatusFilter } from "@/lib/types";
 import { CONFIDENCE_CONFIG } from "@/lib/constants";
 
 interface FilterBarProps {
@@ -24,12 +24,23 @@ export default function FilterBar({
   const yellowCount = issues.filter((i) => i.confidence === "yellow").length;
   const redCount = issues.filter((i) => i.confidence === "red").length;
 
-  const scopingCount = issues.filter((i) => i.status === "scoping").length;
-  const fixingCount = issues.filter(
-    (i) => i.status === "fixing" || i.status === "blocked"
+  const pendingCount = issues.filter(
+    (i) => i.status === "pending" || i.status === "scoped"
   ).length;
-  const doneCount = issues.filter(
-    (i) => i.status === "done" || i.status === "pr_open"
+  const activeCount = issues.filter(
+    (i) =>
+      i.status === "scoping" ||
+      i.status === "fixing" ||
+      i.status === "blocked" ||
+      i.status === "awaiting_reply"
+  ).length;
+  const closedCount = issues.filter(
+    (i) =>
+      i.status === "done" ||
+      i.status === "pr_open" ||
+      i.status === "timed_out" ||
+      i.status === "failed" ||
+      i.status === "aborted"
   ).length;
 
   const isAllActive =
@@ -42,7 +53,7 @@ export default function FilterBar({
     });
   }
 
-  function handleStatus(s: IssueStatus | "all") {
+  function handleStatus(s: StatusFilter | "all") {
     onFilterChange({
       status: s === filter.status ? "all" : s,
       confidence: "all",
@@ -114,34 +125,34 @@ export default function FilterBar({
           Status
         </span>
         <button
-          onClick={() => handleStatus("scoping")}
+          onClick={() => handleStatus("pending")}
           className={`text-sm transition-colors ${
-            filter.status === "scoping"
+            filter.status === "pending"
               ? "text-text-primary"
               : "text-text-muted hover:text-text-secondary"
           }`}
         >
-          Scoping{scopingCount > 0 && ` (${scopingCount})`}
+          Pending{pendingCount > 0 && ` (${pendingCount})`}
         </button>
         <button
-          onClick={() => handleStatus("fixing")}
+          onClick={() => handleStatus("active")}
           className={`text-sm transition-colors ${
-            filter.status === "fixing"
+            filter.status === "active"
               ? "text-text-primary"
               : "text-text-muted hover:text-text-secondary"
           }`}
         >
-          Fixing{fixingCount > 0 && ` (${fixingCount})`}
+          Active{activeCount > 0 && ` (${activeCount})`}
         </button>
         <button
-          onClick={() => handleStatus("done")}
+          onClick={() => handleStatus("closed")}
           className={`text-sm transition-colors ${
-            filter.status === "done"
+            filter.status === "closed"
               ? "text-text-primary"
               : "text-text-muted hover:text-text-secondary"
           }`}
         >
-          Done{doneCount > 0 && ` (${doneCount})`}
+          Closed{closedCount > 0 && ` (${closedCount})`}
         </button>
       </div>
 

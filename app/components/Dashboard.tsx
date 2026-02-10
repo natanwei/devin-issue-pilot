@@ -161,16 +161,27 @@ function filterAndSortIssues(
 
   // Filter by status (group related statuses)
   if (filter.status !== "all") {
-    if (filter.status === "fixing") {
+    if (filter.status === "pending") {
       filtered = filtered.filter(
-        (i) => i.status === "fixing" || i.status === "blocked"
+        (i) => i.status === "pending" || i.status === "scoped"
       );
-    } else if (filter.status === "done") {
+    } else if (filter.status === "active") {
       filtered = filtered.filter(
-        (i) => i.status === "done" || i.status === "pr_open"
+        (i) =>
+          i.status === "scoping" ||
+          i.status === "fixing" ||
+          i.status === "blocked" ||
+          i.status === "awaiting_reply"
       );
-    } else {
-      filtered = filtered.filter((i) => i.status === filter.status);
+    } else if (filter.status === "closed") {
+      filtered = filtered.filter(
+        (i) =>
+          i.status === "done" ||
+          i.status === "pr_open" ||
+          i.status === "timed_out" ||
+          i.status === "failed" ||
+          i.status === "aborted"
+      );
     }
   }
 
