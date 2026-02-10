@@ -1075,14 +1075,11 @@ export default function Dashboard({
     async (sessionId: string, message: string) => {
       if (state.mode === "demo") { showDemoToast(); return; }
 
-<<<<<<< HEAD
       const activeIssueNumber = stateRef.current.activeSession?.issueNumber;
       if (activeIssueNumber) {
         pendingMessagesRef.current.set(activeIssueNumber, message);
       }
 
-||||||| parent of 821afc9 (UI: add ConversationThread; fix scoping loop; add messages to types/parsers; update dashboard/demos; remove fake GitHub link)
-=======
       // Optimistically append user's message to the issue's local thread
       const current = stateRef.current;
       const target = current.issues.find((iss) => iss.fix_session?.session_id === sessionId || iss.scoping_session?.session_id === sessionId);
@@ -1096,7 +1093,6 @@ export default function Dashboard({
         dispatch({ type: "UPDATE_ISSUE", issueNumber: target.number, patch: { messages: [optimistic] } });
       }
 
->>>>>>> 821afc9 (UI: add ConversationThread; fix scoping loop; add messages to types/parsers; update dashboard/demos; remove fake GitHub link)
       const res = await fetch("/api/devin/message", {
         method: "POST",
         headers: { "Content-Type": "application/json", ...apiKeyHeaders(keysRef.current) },
