@@ -1,6 +1,6 @@
 "use client";
 
-import { DashboardIssue, DashboardAction } from "@/lib/types";
+import { DashboardIssue, DashboardAction, DashboardState } from "@/lib/types";
 import IssueRow from "./IssueRow";
 import IssueDetail, { IssueActions } from "./IssueDetail";
 
@@ -11,6 +11,7 @@ interface IssueListProps {
   mode: "demo" | "live";
   actions: IssueActions;
   lastMainCommitDate: string | null;
+  activeSession: DashboardState["activeSession"];
 }
 
 export default function IssueList({
@@ -20,6 +21,7 @@ export default function IssueList({
   mode,
   actions,
   lastMainCommitDate,
+  activeSession,
 }: IssueListProps) {
   if (issues.length === 0) {
     return (
@@ -43,6 +45,7 @@ export default function IssueList({
                 dispatch({ type: "TOGGLE_EXPAND", issueNumber: issue.number })
               }
               lastMainCommitDate={lastMainCommitDate}
+              activeSession={activeSession}
             />
             {/* Accordion content area */}
             <div
@@ -57,6 +60,7 @@ export default function IssueList({
                   mode={mode}
                   actions={actions}
                   lastMainCommitDate={lastMainCommitDate}
+                  activeSession={activeSession}
                 />
               </div>
             </div>

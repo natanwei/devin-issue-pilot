@@ -506,7 +506,10 @@ export default function Dashboard({
 
   // --- Auto-scoping pipeline ---
   const handleStartScope = useCallback(async (issue: DashboardIssue) => {
-    if (scopingInProgressRef.current) return;
+    if (scopingInProgressRef.current) {
+      showToast("Another issue is being scoped \u2014 this one will be scoped next automatically");
+      return;
+    }
     if (stateRef.current.mode !== "live" || !stateRef.current.repo) return;
 
     scopingInProgressRef.current = true;
@@ -567,7 +570,7 @@ export default function Dashboard({
         error: err instanceof Error ? err.message : "Failed to start scoping",
       });
     }
-  }, []);
+  }, [showToast]);
 
   // Reset scoping guard when session clears (so auto-scope picks up next issue)
   useEffect(() => {
@@ -1469,6 +1472,7 @@ Do NOT start implementing the fix — only provide the updated analysis.`;
             mode={state.mode}
             actions={actions}
             lastMainCommitDate={state.lastMainCommitDate}
+            activeSession={state.activeSession}
           />
         </div>
       )}

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { DashboardIssue, DashboardAction } from "@/lib/types";
+import { DashboardIssue, DashboardAction, DashboardState, IssueStatus } from "@/lib/types";
 import { CONFIDENCE_CONFIG } from "@/lib/constants";
 import DevinQuestions from "./DevinQuestions";
 import MessageInput from "./MessageInput";
@@ -35,6 +35,7 @@ interface IssueDetailProps {
   mode: "demo" | "live";
   actions: IssueActions;
   lastMainCommitDate?: string | null;
+  activeSession: DashboardState["activeSession"];
 }
 
 // --- Shared sub-layouts ---
@@ -781,11 +782,18 @@ export default function IssueDetail({
   mode,
   actions,
   lastMainCommitDate,
+  activeSession,
 }: IssueDetailProps) {
   void dispatch; // kept for potential direct dispatch needs
   void mode;
+
+  const effectiveStatus: IssueStatus =
+    activeSession?.issueNumber === issue.number
+      ? (activeSession.type === "scoping" ? "scoping" : "fixing")
+      : issue.status;
+
   const borderColor = (() => {
-    switch (issue.status) {
+    switch (effectiveStatus) {
       case "fixing":
         return "#3b82f6";
       case "blocked":
@@ -807,7 +815,7 @@ export default function IssueDetail({
   })();
 
   function renderContent() {
-    switch (issue.status) {
+    switch (effectiveStatus) {
       case "scoped":
         return <ScopedView issue={issue} actions={actions} lastMainCommitDate={lastMainCommitDate} />;
       case "awaiting_reply":
@@ -825,23 +833,28 @@ export default function IssueDetail({
         return <TimedOutView issue={issue} actions={actions} />;
       case "aborted":
         return <AbortedView issue={issue} />;
+      case "scoping":
+        return (
+          <div className="flex items-center justify-between w-full">
+            <span className="text-text-muted text-sm italic">
+              Devin is analyzing this issue...
+            </span>
+          </div>
+        );
+      case "pending":
       default:
         return (
           <div className="flex items-center justify-between w-full">
             <span className="text-text-muted text-sm italic">
-              {issue.status === "scoping"
-                ? "Devin is analyzing this issue..."
-                : "Waiting to be scoped"}
+              Waiting to be scoped
             </span>
-            {issue.status === "pending" && (
-              <button
-                onClick={() => actions.onStartScope(issue)}
-                className="inline-flex items-center gap-1.5 bg-accent-blue hover:bg-accent-blue/90 text-white text-sm font-semibold px-4 py-1.5 rounded-md transition-colors"
-              >
-                <Search className="h-3.5 w-3.5" />
-                Scope
-              </button>
-            )}
+            <button
+              onClick={() => actions.onStartScope(issue)}
+              className="inline-flex items-center gap-1.5 bg-accent-blue hover:bg-accent-blue/90 text-white text-sm font-semibold px-4 py-1.5 rounded-md transition-colors"
+            >
+              <Search className="h-3.5 w-3.5" />
+              Scope
+            </button>
           </div>
         );
     }

@@ -1,6 +1,6 @@
 "use client";
 
-import { DashboardIssue } from "@/lib/types";
+import { DashboardIssue, DashboardState, IssueStatus } from "@/lib/types";
 import { CONFIDENCE_CONFIG } from "@/lib/constants";
 import ConfidenceDot from "./ConfidenceDot";
 import StatusIndicator from "./StatusIndicator";
@@ -11,6 +11,7 @@ interface IssueRowProps {
   isExpanded: boolean;
   onToggle: () => void;
   lastMainCommitDate: string | null;
+  activeSession: DashboardState["activeSession"];
 }
 
 function getTimeSince(dateStr: string): string {
@@ -24,7 +25,12 @@ function getTimeSince(dateStr: string): string {
   return "just now";
 }
 
-export default function IssueRow({ issue, isExpanded, onToggle, lastMainCommitDate }: IssueRowProps) {
+export default function IssueRow({ issue, isExpanded, onToggle, lastMainCommitDate, activeSession }: IssueRowProps) {
+  const effectiveStatus: IssueStatus =
+    activeSession?.issueNumber === issue.number
+      ? (activeSession.type === "scoping" ? "scoping" : "fixing")
+      : issue.status;
+
   const fileCount = issue.files_info.length || issue.scoping?.files_to_modify.length || 0;
   const totalLines = issue.files_info.reduce((sum, f) => sum + (f.lines || 0), 0);
   const isStale = !!(
@@ -86,7 +92,7 @@ export default function IssueRow({ issue, isExpanded, onToggle, lastMainCommitDa
 
       {/* Status indicator */}
       <div className="flex-shrink-0">
-        <StatusIndicator status={issue.status} />
+        <StatusIndicator status={effectiveStatus} />
       </div>
 
       {/* Chevron */}
