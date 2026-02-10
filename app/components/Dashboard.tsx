@@ -19,7 +19,6 @@ import {
 import {
   CONFIDENCE_SORT_ORDER,
   POLLING_INTERVALS,
-  TIMEOUT_LIMITS,
   ACU_LIMITS,
   ISSUE_REFRESH_INTERVAL,
 } from "@/lib/constants";
@@ -832,18 +831,8 @@ export default function Dashboard({
       const issue = current.issues.find((i) => i.number === issueNumber);
       if (!issue) return;
 
-      // Determine session timing context
-      const sessionStart = type === "scoping"
-        ? issue.scoping_session?.started_at
-        : issue.fix_session?.started_at;
-      const timeoutLimit = type === "scoping"
-        ? TIMEOUT_LIMITS.scoping
-        : TIMEOUT_LIMITS.fixing;
-
       const result = interpretPollResult(data, type, {
         issueNumber,
-        sessionStartedAt: sessionStart,
-        timeoutLimit,
       });
 
       switch (result.action) {

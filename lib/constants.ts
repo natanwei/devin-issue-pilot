@@ -52,11 +52,6 @@ export const POLLING_INTERVALS: Record<string, number> = {
   default: 15_000,
 };
 
-export const TIMEOUT_LIMITS = {
-  scoping: 15 * 60_000, // 15 minutes
-  fixing: 30 * 60_000, // 30 minutes
-};
-
 export const ACU_LIMITS = {
   scoping: 3,
   fixing: 15,

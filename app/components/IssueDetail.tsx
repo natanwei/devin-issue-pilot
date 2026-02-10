@@ -197,7 +197,7 @@ function ConfidenceHeader({ issue }: { issue: DashboardIssue }) {
     reasonText = "Fix failed";
     reasonColor = "text-accent-red";
   } else if (issue.status === "timed_out") {
-    reasonText = "Session timed out";
+    reasonText = "Session expired";
     reasonColor = "text-text-muted";
   } else if (issue.status === "aborted") {
     reasonText = "Aborted by user";
@@ -715,10 +715,10 @@ function TimedOutView({
       <div className="flex flex-col items-center gap-3 py-8">
         <Clock className="h-8 w-8 text-text-muted" />
         <span className="text-text-primary text-base">
-          Session exceeded the 30 minute time limit
+          Devin session expired
         </span>
         <span className="text-text-secondary text-sm">
-          Devin may still be working — check the session details.
+          The session ended before completing the fix.
         </span>
       </div>
 

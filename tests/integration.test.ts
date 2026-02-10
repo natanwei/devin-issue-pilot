@@ -27,14 +27,13 @@ function makeStatus(overrides: Partial<StatusRouteResponse> = {}): StatusRouteRe
     updatedAt: "2025-02-08T10:05:30Z",
     pullRequest: null,
     structuredOutput: null,
+    messages: [],
     ...overrides,
   };
 }
 
 const DEFAULT_CONTEXT = {
   issueNumber: 14,
-  sessionStartedAt: "2025-02-08T11:50:00Z",
-  timeoutLimit: 15 * 60_000, // 15 minutes
   now: NOW,
 };
 

@@ -563,8 +563,6 @@ async function step8_dataFlowTrace(): Promise<string> {
   log("Step 3: StatusRouteResponse → interpretPollResult()");
   const pollResult = interpretPollResult(statusResponse, "scoping", {
     issueNumber,
-    sessionStartedAt: new Date(Date.now() - 5 * 60_000).toISOString(), // simulate 5 min session
-    timeoutLimit: 15 * 60_000,
   });
   log(`  action: ${pollResult.action}`);
   if ("patch" in pollResult && pollResult.patch) {

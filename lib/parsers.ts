@@ -214,30 +214,19 @@ function extractConversationMessages(
 // interpretPollResult
 // ---------------------------------------------------------------------------
 
-/** Given a parsed status response, session type, and timing context,
+/** Given a parsed status response, session type, and issue number,
  *  determine the next action for the dashboard polling loop. */
 export function interpretPollResult(
   data: StatusRouteResponse,
   sessionType: "scoping" | "fixing",
   context: {
     issueNumber: number;
-    sessionStartedAt: string | undefined;
-    timeoutLimit: number;
     now?: string; // for testability; defaults to current time
   },
 ): PollResult {
   const now = context.now ?? new Date().toISOString();
 
-  // 1. Timeout check (wall-clock)
-  if (context.sessionStartedAt) {
-    const elapsed =
-      new Date(now).getTime() - new Date(context.sessionStartedAt).getTime();
-    if (elapsed > context.timeoutLimit) {
-      return { action: "timed_out", patch: { status: "timed_out", messages: data.messages } };
-    }
-  }
-
-  // 2. Expired status → timed_out (semantic: Devin itself gave up)
+  // 1. Expired status → timed_out (semantic: Devin itself gave up)
   if (data.statusEnum === "expired") {
     return { action: "timed_out", patch: { status: "timed_out", messages: data.messages } };
   }

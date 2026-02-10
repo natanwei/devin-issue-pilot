@@ -84,8 +84,6 @@ const RAW_EXPIRED = {
 
 const DEFAULT_CONTEXT = {
   issueNumber: 14,
-  sessionStartedAt: "2026-02-08T11:55:00Z", // 5 min before NOW (within timeout)
-  timeoutLimit: 15 * 60_000,
   now: NOW,
 };
 
@@ -149,10 +147,7 @@ describe("Full data flow: fix with PR", () => {
       "https://github.com/natanwei/devin-issue-pilot/pull/42",
     );
 
-    const result = interpretPollResult(parsed, "fixing", {
-      ...DEFAULT_CONTEXT,
-      sessionStartedAt: "2026-02-08T11:50:00Z", // 10 min before NOW
-    });
+    const result = interpretPollResult(parsed, "fixing", DEFAULT_CONTEXT);
     expect(result.action).toBe("done");
 
     if (result.action === "done") {
@@ -195,10 +190,7 @@ describe("Full data flow: blocked session", () => {
     expect(parsed.statusEnum).toBe("blocked");
     expect(parsed.isTerminal).toBe(false);
 
-    const result = interpretPollResult(parsed, "fixing", {
-      ...DEFAULT_CONTEXT,
-      sessionStartedAt: "2026-02-08T11:50:00Z", // 10 min before NOW
-    });
+    const result = interpretPollResult(parsed, "fixing", DEFAULT_CONTEXT);
     expect(result.action).toBe("blocked");
 
     if (result.action === "blocked") {
@@ -220,10 +212,7 @@ describe("Full data flow: blocked session", () => {
     });
     expect(parsed.blockerMessage).toBe("I need GitHub authentication to push the branch.");
 
-    const result = interpretPollResult(parsed, "fixing", {
-      ...DEFAULT_CONTEXT,
-      sessionStartedAt: "2026-02-08T11:50:00Z",
-    });
+    const result = interpretPollResult(parsed, "fixing", DEFAULT_CONTEXT);
     expect(result.action).toBe("blocked");
     if (result.action === "blocked") {
       expect(result.patch.blocker?.what_happened).toBe(
@@ -247,10 +236,7 @@ describe("Full data flow: sleeping session", () => {
     expect(parsed.statusEnum).toBe("suspend_requested");
     expect(parsed.isTerminal).toBe(false);
 
-    const result = interpretPollResult(parsed, "fixing", {
-      ...DEFAULT_CONTEXT,
-      sessionStartedAt: "2026-02-08T11:50:00Z",
-    });
+    const result = interpretPollResult(parsed, "fixing", DEFAULT_CONTEXT);
     expect(result.action).toBe("blocked");
 
     if (result.action === "blocked") {
@@ -271,10 +257,7 @@ describe("Full data flow: failed fix (stopped)", () => {
     expect(parsed.statusEnum).toBe("stopped");
     expect(parsed.isTerminal).toBe(true);
 
-    const result = interpretPollResult(parsed, "fixing", {
-      ...DEFAULT_CONTEXT,
-      sessionStartedAt: "2026-02-08T11:50:00Z", // 10 min before NOW
-    });
+    const result = interpretPollResult(parsed, "fixing", DEFAULT_CONTEXT);
     expect(result.action).toBe("failed");
 
     if (result.action === "failed") {
@@ -299,10 +282,7 @@ describe("Full data flow: expired session", () => {
     expect(parsed.statusEnum).toBe("expired");
     expect(parsed.isTerminal).toBe(true);
 
-    const result = interpretPollResult(parsed, "scoping", {
-      ...DEFAULT_CONTEXT,
-      sessionStartedAt: "2026-02-08T11:55:00Z", // within timeout; expired comes from status_enum
-    });
+    const result = interpretPollResult(parsed, "scoping", DEFAULT_CONTEXT);
     expect(result.action).toBe("timed_out");
 
     if (result.action === "timed_out") {
@@ -396,7 +376,7 @@ describe("extractConversationMessages via parseSessionResponse", () => {
   it("returns empty array when raw messages is undefined", () => {
     const parsed = parseSessionResponse({
       ...RAW_SCOPING_COMPLETE,
-      messages: undefined as unknown as typeof RAW_SCOPING_COMPLETE.messages,
+      messages: undefined,
     });
     expect(parsed.messages).toEqual([]);
   });
@@ -498,36 +478,3 @@ describe("extractConversationMessages via parseSessionResponse", () => {
   });
 });
 
-describe("Wall-clock timeout through pipeline", () => {
-  it("scoping session that exceeds 15 min → timed_out", () => {
-    const parsed = parseSessionResponse({
-      ...RAW_SCOPING_COMPLETE,
-      status_enum: "working",
-      structured_output: null,
-    });
-
-    const result = interpretPollResult(parsed, "scoping", {
-      issueNumber: 14,
-      sessionStartedAt: "2026-02-08T11:40:00Z", // 20 min before NOW
-      timeoutLimit: 15 * 60_000,
-      now: NOW,
-    });
-    expect(result.action).toBe("timed_out");
-  });
-
-  it("fixing session within 30 min → continues", () => {
-    const parsed = parseSessionResponse({
-      ...RAW_SCOPING_COMPLETE,
-      status_enum: "working",
-      structured_output: null,
-    });
-
-    const result = interpretPollResult(parsed, "fixing", {
-      issueNumber: 14,
-      sessionStartedAt: "2026-02-08T11:50:00Z", // 10 min before NOW
-      timeoutLimit: 30 * 60_000,
-      now: NOW,
-    });
-    expect(result.action).toBe("continue");
-  });
-});
