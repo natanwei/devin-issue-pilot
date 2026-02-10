@@ -113,13 +113,16 @@ export default function SettingsPanel({
                 <span className="text-accent-purple font-semibold shrink-0">1.</span>
                 <div className="flex flex-col gap-1">
                   <span className="text-text-secondary font-medium">Get your Devin API key</span>
+                  <span className="text-text-muted text-xs">
+                    Create a <strong className="text-text-secondary">Personal</strong> key (starts with <code className="text-accent-blue">apk_user_</code>)
+                  </span>
                   <a
-                    href="https://app.devin.ai/settings"
+                    href="https://app.devin.ai/settings/api-keys"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-accent-blue text-xs hover:underline inline-flex items-center gap-1"
                   >
-                    app.devin.ai/settings <ExternalLink className="h-3 w-3" />
+                    app.devin.ai/settings/api-keys <ExternalLink className="h-3 w-3" />
                   </a>
                 </div>
               </div>
@@ -149,12 +152,12 @@ export default function SettingsPanel({
                     Go to Integrations &rarr; GitHub &rarr; Add Connection. Grant access to the repos you want Devin to work on (public or private). Devin needs this to create branches and PRs &mdash; without it, scoping works but fixes will fail.
                   </span>
                   <a
-                    href="https://app.devin.ai/settings"
+                    href="https://app.devin.ai/settings/integrations"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-accent-blue text-xs hover:underline inline-flex items-center gap-1"
                   >
-                    app.devin.ai/settings <ExternalLink className="h-3 w-3" />
+                    app.devin.ai/settings/integrations <ExternalLink className="h-3 w-3" />
                   </a>
                 </div>
               </div>

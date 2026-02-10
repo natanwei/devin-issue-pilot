@@ -261,7 +261,7 @@ export default function Dashboard({
   }, []);
 
   const showDemoToast = useCallback(() => {
-    showToast("Switch to Live mode to use this action");
+    showToast("This is a UI preview \u2014 switch to Live to use real actions");
   }, [showToast]);
 
   useEffect(() => {

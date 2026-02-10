@@ -108,7 +108,7 @@ export default function TopBar({
                 : "text-text-muted hover:text-text-secondary cursor-pointer"
             }`}
           >
-            Demo
+            Preview
           </button>
           <button
             onClick={mode === "demo" ? onToggleMode : undefined}
