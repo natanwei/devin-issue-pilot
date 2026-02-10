@@ -5,6 +5,7 @@ import { CONFIDENCE_CONFIG } from "@/lib/constants";
 import ConfidenceDot from "./ConfidenceDot";
 import StatusIndicator from "./StatusIndicator";
 import { ChevronDown } from "lucide-react";
+import { buildIssueMetaText } from "@/lib/formatting";
 
 interface IssueRowProps {
   issue: DashboardIssue;
@@ -12,17 +13,6 @@ interface IssueRowProps {
   onToggle: () => void;
   lastMainCommitDate: string | null;
   activeSession: DashboardState["activeSession"];
-}
-
-function getTimeSince(dateStr: string): string {
-  const ms = Date.now() - new Date(dateStr).getTime();
-  const minutes = Math.floor(ms / 60000);
-  const hours = Math.floor(minutes / 60);
-  const days = Math.floor(hours / 24);
-  if (days > 0) return `${days} day${days > 1 ? "s" : ""} ago`;
-  if (hours > 0) return `${hours} hour${hours > 1 ? "s" : ""} ago`;
-  if (minutes > 0) return `${minutes}m ago`;
-  return "just now";
 }
 
 export default function IssueRow({ issue, isExpanded, onToggle, lastMainCommitDate, activeSession }: IssueRowProps) {
@@ -38,6 +28,9 @@ export default function IssueRow({ issue, isExpanded, onToggle, lastMainCommitDa
     lastMainCommitDate &&
     new Date(lastMainCommitDate).getTime() > new Date(issue.scoped_at).getTime()
   );
+
+  const meta = buildIssueMetaText(fileCount, totalLines, issue.created_at);
+  const displayMeta = meta ? (isStale ? ` · ${meta}` : meta) : "";
 
   const isTerminal = ["done", "pr_open", "failed", "timed_out", "aborted"].includes(effectiveStatus);
   const borderColor = isTerminal
@@ -88,9 +81,7 @@ export default function IssueRow({ issue, isExpanded, onToggle, lastMainCommitDa
         {isStale && (
           <span className="text-accent-amber mr-1.5">Outdated</span>
         )}
-        {fileCount > 0 && `${fileCount} file${fileCount > 1 ? "s" : ""}`}
-        {totalLines > 0 && ` · ~${totalLines} lines`}
-        {issue.created_at && ` · ${getTimeSince(issue.created_at)}`}
+        {displayMeta}
       </span>
 
       {/* Status indicator */}
