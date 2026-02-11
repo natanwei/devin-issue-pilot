@@ -836,6 +836,20 @@ Do NOT start implementing the fix — only provide the updated analysis.`;
           throw new Error(data.error || `Abort failed (${res.status})`);
         }
 
+        const repo = stateRef.current.repo;
+        if (repo) {
+          fetch("/api/supabase/sessions", {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              repo: `${repo.owner}/${repo.name}`,
+              issue_number: issueNumber,
+              status: "aborted",
+              fix_session: null,
+            }),
+          }).catch(() => {});
+        }
+
         dispatch({
           type: "UPDATE_ISSUE",
           issueNumber,

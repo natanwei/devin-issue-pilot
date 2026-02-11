@@ -221,6 +221,7 @@ export function useSessionPolling(
               body: JSON.stringify({
                 repo: `${current.repo.owner}/${current.repo.name}`,
                 issue_number: issueNumber,
+                status: "done",
                 ...(finalPatch.pr ? { pr: finalPatch.pr } : {}),
                 fix_session_updated_at: finalPatch.fix_session_updated_at,
               }),

@@ -86,7 +86,7 @@ export default function IssueDetail({
       case "timed_out":
         return <TimedOutView issue={issue} actions={actions} canFix={canFix} />;
       case "aborted":
-        return <AbortedView issue={issue} acuLimitFixing={acuLimitFixing} />;
+        return <AbortedView issue={issue} actions={actions} acuLimitFixing={acuLimitFixing} canFix={canFix} />;
       case "scoping": {
         const hasUserMessage = issue.messages?.length > 0 &&
           issue.messages[issue.messages.length - 1].role === "user";

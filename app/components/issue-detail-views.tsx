@@ -593,7 +593,17 @@ export function TimedOutView({
 
 // --- AbortedView ---
 
-export function AbortedView({ issue, acuLimitFixing }: { issue: DashboardIssue; acuLimitFixing: number }) {
+export function AbortedView({
+  issue,
+  actions,
+  acuLimitFixing,
+  canFix,
+}: {
+  issue: DashboardIssue;
+  actions: IssueActions;
+  acuLimitFixing: number;
+  canFix: boolean;
+}) {
   const completedSteps = issue.steps.filter((s) => s.status === "done");
 
   return (
@@ -605,6 +615,37 @@ export function AbortedView({ issue, acuLimitFixing }: { issue: DashboardIssue; 
       {completedSteps.length > 0 && <StepChecklist steps={issue.steps} />}
 
       <SessionStats issue={issue} acuLimitFixing={acuLimitFixing} />
+
+      <div className="flex items-center justify-between w-full">
+        <div className="flex items-center gap-2">
+          {canFix ? (
+            <>
+              <button
+                onClick={() => actions.onRetry(issue)}
+                className="inline-flex items-center gap-1.5 border border-accent-blue text-accent-blue text-[13px] font-medium rounded-md px-4 py-1.5 hover:bg-accent-blue/10 transition-colors"
+              >
+                Retry Fix
+              </button>
+              <span className="text-text-muted text-xs">
+                This will start a new session
+              </span>
+            </>
+          ) : (
+            <ApiKeysHint onOpenSettings={actions.onOpenSettings} />
+          )}
+        </div>
+        {issue.fix_session && (
+          <a
+            href={issue.fix_session.session_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-1.5 text-text-muted text-xs"
+          >
+            <ExternalLink className="h-3 w-3" />
+            View session log →
+          </a>
+        )}
+      </div>
     </>
   );
 }
