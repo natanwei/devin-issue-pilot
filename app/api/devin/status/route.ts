@@ -36,7 +36,8 @@ export async function GET(req: NextRequest) {
     // Supabase already has scoped result → use as source of truth
     // Only use cache when the Devin session is actually terminal; during re-scoping
     // (session running/blocked after user reply), we need fresh data from the API.
-    if (supabaseRow?.status === "scoped" && supabaseRow?.scoping && isTerminal(session.status_enum)) {
+    const isScopingSession = supabaseRow?.scoping_session?.session_id === sessionId;
+    if (isScopingSession && supabaseRow?.status === "scoped" && supabaseRow?.scoping && isTerminal(session.status_enum)) {
       return NextResponse.json({
         sessionId: session.session_id,
         statusEnum: session.status_enum,
@@ -65,7 +66,17 @@ export async function GET(req: NextRequest) {
       await upsertIssueSession({
         repo,
         issue_number: issueNum,
-        status: session.pull_request ? "done" : parsed ? "scoped" : session.status_enum === "blocked" ? "blocked" : session.status_enum,
+        status: session.pull_request
+          ? "done"
+          : parsed
+            ? "scoped"
+            : session.status_enum === "blocked"
+              ? "blocked"
+              : session.status_enum === "stopped"
+                ? "aborted"
+                : session.status_enum === "expired"
+                  ? "timed_out"
+                  : "failed",
         // Only persist scoping fields when we actually have parsed data,
         // otherwise fix-session polls would overwrite earlier scoping data with null
         ...(parsed ? {
