@@ -1151,6 +1151,7 @@ Do NOT start implementing the fix — only provide the updated analysis.`;
         keys={keys}
         onSave={setKeys}
         onClear={clearKeys}
+        hasActiveSession={state.activeSession !== null}
       />
 
       {/* Toast */}

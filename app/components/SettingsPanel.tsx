@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Settings, Eye, EyeOff, X, ChevronDown, ChevronUp, ExternalLink, Loader2 } from "lucide-react";
+import { Settings, Eye, EyeOff, X, ChevronDown, ChevronUp, ExternalLink, Loader2, Lock } from "lucide-react";
 import { ApiKeys, maskKey } from "@/lib/api-keys";
 
 interface SettingsPanelProps {
@@ -10,6 +10,7 @@ interface SettingsPanelProps {
   keys: ApiKeys;
   onSave: (keys: Partial<ApiKeys>) => void;
   onClear: () => void;
+  hasActiveSession?: boolean;
 }
 
 export default function SettingsPanel({
@@ -18,6 +19,7 @@ export default function SettingsPanel({
   keys,
   onSave,
   onClear,
+  hasActiveSession = false,
 }: SettingsPanelProps) {
   const [devinDraft, setDevinDraft] = useState("");
   const [githubDraft, setGithubDraft] = useState("");
@@ -32,14 +34,15 @@ export default function SettingsPanel({
 
   if (!open) return null;
 
+  const keysLocked = hasActiveSession;
   const hasExistingDevin = !!keys.devinApiKey;
   const hasExistingGithub = !!keys.githubToken;
   const hasAnyKeys = hasExistingDevin || hasExistingGithub;
 
   async function handleSave() {
     const updates: Partial<ApiKeys> = {};
-    if (devinDraft.trim()) updates.devinApiKey = devinDraft.trim();
-    if (githubDraft.trim()) updates.githubToken = githubDraft.trim();
+    if (!keysLocked && devinDraft.trim()) updates.devinApiKey = devinDraft.trim();
+    if (!keysLocked && githubDraft.trim()) updates.githubToken = githubDraft.trim();
     if (scopingAcu !== keys.acuLimitScoping) updates.acuLimitScoping = scopingAcu;
     if (fixingAcu !== keys.acuLimitFixing) updates.acuLimitFixing = fixingAcu;
 
@@ -100,6 +103,7 @@ export default function SettingsPanel({
   }
 
   function handleClear() {
+    if (keysLocked) return;
     onClear();
     setDevinDraft("");
     setGithubDraft("");
@@ -213,6 +217,16 @@ export default function SettingsPanel({
           )}
         </div>
 
+        {/* Session lock warning */}
+        {keysLocked && (
+          <div className="flex items-center gap-2 bg-accent-amber/10 border border-accent-amber/20 rounded-md px-3 py-2">
+            <Lock className="h-4 w-4 text-accent-amber shrink-0" />
+            <span className="text-accent-amber text-sm">
+              API keys are locked while a session is active.
+            </span>
+          </div>
+        )}
+
         {/* Devin API Key */}
         <div className="flex flex-col gap-2">
           <label className="text-text-secondary text-sm font-medium">
@@ -223,12 +237,14 @@ export default function SettingsPanel({
               <span className="text-text-secondary text-sm font-mono flex-1">
                 {maskKey(keys.devinApiKey!)}
               </span>
-              <button
-                onClick={() => setDevinDraft(" ")}
-                className="text-accent-blue text-xs hover:opacity-80 transition-opacity"
-              >
-                Change
-              </button>
+              {!keysLocked && (
+                <button
+                  onClick={() => setDevinDraft(" ")}
+                  className="text-accent-blue text-xs hover:opacity-80 transition-opacity"
+                >
+                  Change
+                </button>
+              )}
             </div>
           ) : (
             <div className="relative">
@@ -240,9 +256,10 @@ export default function SettingsPanel({
                   if (devinError) setDevinError(null);
                 }}
                 placeholder="apk_user_..."
+                disabled={keysLocked}
                 className={`w-full bg-elevated border rounded-md px-3 py-2 pr-10 text-sm text-text-primary placeholder:text-text-muted focus:outline-none transition-colors ${
                   devinError ? "border-accent-red focus:border-accent-red" : "border-border-subtle focus:border-accent-blue"
-                }`}
+                } ${keysLocked ? "opacity-50 cursor-not-allowed" : ""}`}
                 autoComplete="off"
               />
               <button
@@ -272,12 +289,14 @@ export default function SettingsPanel({
               <span className="text-text-secondary text-sm font-mono flex-1">
                 {maskKey(keys.githubToken!)}
               </span>
-              <button
-                onClick={() => setGithubDraft(" ")}
-                className="text-accent-blue text-xs hover:opacity-80 transition-opacity"
-              >
-                Change
-              </button>
+              {!keysLocked && (
+                <button
+                  onClick={() => setGithubDraft(" ")}
+                  className="text-accent-blue text-xs hover:opacity-80 transition-opacity"
+                >
+                  Change
+                </button>
+              )}
             </div>
           ) : (
             <div className="relative">
@@ -289,9 +308,10 @@ export default function SettingsPanel({
                   if (githubError) setGithubError(null);
                 }}
                 placeholder="ghp_..."
+                disabled={keysLocked}
                 className={`w-full bg-elevated border rounded-md px-3 py-2 pr-10 text-sm text-text-primary placeholder:text-text-muted focus:outline-none transition-colors ${
                   githubError ? "border-accent-red focus:border-accent-red" : "border-border-subtle focus:border-accent-blue"
-                }`}
+                } ${keysLocked ? "opacity-50 cursor-not-allowed" : ""}`}
                 autoComplete="off"
               />
               <button
@@ -395,7 +415,11 @@ export default function SettingsPanel({
             {hasAnyKeys && (
               <button
                 onClick={handleClear}
-                className="text-accent-red text-sm hover:opacity-80 transition-opacity"
+                disabled={keysLocked}
+                title={keysLocked ? "Cannot clear keys while a session is active" : undefined}
+                className={`text-accent-red text-sm transition-opacity ${
+                  keysLocked ? "opacity-50 cursor-not-allowed" : "hover:opacity-80"
+                }`}
               >
                 Clear All Keys
               </button>
