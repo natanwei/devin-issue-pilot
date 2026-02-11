@@ -120,7 +120,7 @@ To connect a real GitHub repo and use Devin:
 3. Click **Save & Validate**
 4. Enter a repo (`owner/repo`) and connect
 
-Keys are stored in `sessionStorage` and sent as request headers per-request. Never persisted server-side.
+Your keys stay in your browser tab and are never stored on the server.
 
 ### Environment Variables
 
