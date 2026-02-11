@@ -363,30 +363,71 @@ export function BlockedView({
 
 // --- DoneView ---
 
-export function DoneView({ issue, acuLimitFixing }: { issue: DashboardIssue; acuLimitFixing: number }) {
+export function getDoneCompletedSteps(issue: Pick<DashboardIssue, "steps" | "scoping">): string[] {
   const doneSteps = issue.steps
     .filter((s) => s.status === "done")
     .map((s) => s.label);
-  // Fallback: if no steps but scoping has action_plan, use those (fix succeeded = plan completed)
-  const completedSteps = doneSteps.length > 0
+  return doneSteps.length > 0
     ? doneSteps
     : (issue.scoping?.action_plan ?? []);
+}
+
+export function DoneView({ issue, acuLimitFixing }: { issue: DashboardIssue; acuLimitFixing: number }) {
+  const completedSteps = getDoneCompletedSteps(issue);
 
   return (
     <>
-      {issue.pr && <PRCard pr={issue.pr} />}
+      {issue.pr ? (
+        <>
+          <PRCard pr={issue.pr} />
 
-      {/* Diff snippet */}
-      {issue.pr?.files_changed?.some((f) => f.diff_lines && f.diff_lines.length > 0) && (
-        <DiffSnippet files={issue.pr.files_changed!} />
-      )}
+          {/* Diff snippet */}
+          {issue.pr.files_changed?.some((f) => f.diff_lines && f.diff_lines.length > 0) && (
+            <DiffSnippet files={issue.pr.files_changed!} />
+          )}
 
-      {/* Two columns: Files Changed + Steps Completed */}
-      {issue.pr && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-10 w-full">
-          <FilesChanged files={issue.pr.files_changed ?? []} />
-          <StepsCompleted steps={completedSteps} />
-        </div>
+          {/* Two columns: Files Changed + Steps Completed */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-10 w-full">
+            <FilesChanged files={issue.pr.files_changed ?? []} />
+            <StepsCompleted steps={completedSteps} />
+          </div>
+        </>
+      ) : (
+        <>
+          {/* No-PR banner */}
+          <div
+            className="bg-elevated p-4 flex flex-col gap-2 rounded-r-lg"
+            style={{ borderLeft: "3px solid #22c55e" }}
+          >
+            <span className="text-accent-green text-sm font-semibold">
+              Session completed without a PR
+            </span>
+            <span className="text-text-secondary text-sm">
+              Devin finished working on this issue but did not open a pull request.
+            </span>
+          </div>
+
+          {/* Steps Completed (outside PR gate) */}
+          {completedSteps.length > 0 && (
+            <StepsCompleted steps={completedSteps} />
+          )}
+
+          {/* Conversation thread */}
+          <ConversationThread messages={issue.messages || []} />
+
+          {/* Fix session link */}
+          {issue.fix_session?.session_url && (
+            <a
+              href={issue.fix_session.session_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 text-accent-blue text-xs"
+            >
+              <ExternalLink className="h-3 w-3" />
+              View Devin session →
+            </a>
+          )}
+        </>
       )}
 
       {/* Session stats */}
