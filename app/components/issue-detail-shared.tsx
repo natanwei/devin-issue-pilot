@@ -132,14 +132,10 @@ export function DetailGrid({ issue }: { issue: DashboardIssue }) {
   );
 }
 
-export function ConfidenceHeader({ issue }: { issue: DashboardIssue }) {
-  if (!issue.confidence) return null;
-  const config = CONFIDENCE_CONFIG[issue.confidence];
-
+export function getConfidenceReasonText(issue: Pick<DashboardIssue, "status" | "steps" | "scoping" | "pr">): { reasonText: string; reasonColor: string } {
   let reasonText = issue.scoping?.confidence_reason || "";
   let reasonColor = "text-text-secondary";
 
-  // Override for active states
   if (issue.status === "fixing" && issue.steps.length > 0) {
     const inProgress = issue.steps.findIndex(
       (s) => s.status === "in_progress"
@@ -159,7 +155,7 @@ export function ConfidenceHeader({ issue }: { issue: DashboardIssue }) {
     }
     reasonColor = "text-accent-amber";
   } else if (issue.status === "done" || issue.status === "pr_open") {
-    reasonText = "PR opened ✅";
+    reasonText = issue.pr ? "PR opened ✅" : "Completed";
     reasonColor = "text-accent-green";
   } else if (issue.status === "failed") {
     reasonText = "Fix failed";
@@ -171,6 +167,14 @@ export function ConfidenceHeader({ issue }: { issue: DashboardIssue }) {
     reasonText = "Aborted by user";
     reasonColor = "text-text-muted";
   }
+
+  return { reasonText, reasonColor };
+}
+
+export function ConfidenceHeader({ issue }: { issue: DashboardIssue }) {
+  if (!issue.confidence) return null;
+  const config = CONFIDENCE_CONFIG[issue.confidence];
+  const { reasonText, reasonColor } = getConfidenceReasonText(issue);
 
   return (
     <div className="flex items-center gap-2 flex-wrap">
