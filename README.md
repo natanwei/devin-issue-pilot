@@ -60,7 +60,7 @@ These insights shaped the [flowchart](./diagrams/devin-issue-pilot-flow_final.pn
 
 ### 2. Mockup & Build
 
-Created a [UI mockup](./diagrams/devin-issue-pilot.pen) to lock down layout and interactions before writing code, then built the MVP: connect repo → list issues → scope → fix → PR.
+According to the flowchart, created a [UI mockup](./diagrams/devin-issue-pilot.pen) to lock down layout and interactions before writing code, then built the MVP: connect repo → list issues → scope → fix → PR.
 
 ### 3. User Testing & Iteration
 
