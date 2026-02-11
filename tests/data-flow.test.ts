@@ -365,6 +365,94 @@ describe("Confidence → UI state mapping", () => {
 });
 
 // ---------------------------------------------------------------------------
+// Scoping with open_questions: continue polling instead of terminal
+// ---------------------------------------------------------------------------
+
+describe("Scoping with open_questions continues polling", () => {
+  it("non-terminal scoping with open_questions returns action:continue", () => {
+    const parsed = parseSessionResponse({
+      ...RAW_SCOPING_COMPLETE,
+      status_enum: "working",
+      structured_output: {
+        ...RAW_SCOPING_COMPLETE.structured_output,
+        confidence: "yellow",
+        open_questions: ["Which database to use?", "Is migration needed?"],
+      },
+    });
+    expect(parsed.isTerminal).toBe(false);
+
+    const result = interpretPollResult(parsed, "scoping", DEFAULT_CONTEXT);
+    expect(result.action).toBe("continue");
+    if (result.action === "continue") {
+      expect(result.nextPollCategory).toBe("scoping");
+      expect(result.patch).toBeDefined();
+      expect(result.patch!.status).toBe("scoped");
+      expect(result.patch!.confidence).toBe("yellow");
+      expect(result.patch!.scoping!.open_questions).toHaveLength(2);
+    }
+  });
+
+  it("non-terminal scoping with empty open_questions returns action:scoped (terminal)", () => {
+    const parsed = parseSessionResponse({
+      ...RAW_SCOPING_COMPLETE,
+      status_enum: "working",
+      structured_output: {
+        ...RAW_SCOPING_COMPLETE.structured_output,
+        confidence: "green",
+        open_questions: [],
+      },
+    });
+
+    const result = interpretPollResult(parsed, "scoping", DEFAULT_CONTEXT);
+    expect(result.action).toBe("scoped");
+    if (result.action === "scoped") {
+      expect(result.patch.confidence).toBe("green");
+    }
+  });
+
+  it("terminal scoping with open_questions returns action:scoped (session ended)", () => {
+    const parsed = parseSessionResponse({
+      ...RAW_SCOPING_COMPLETE,
+      status_enum: "finished",
+      structured_output: {
+        ...RAW_SCOPING_COMPLETE.structured_output,
+        confidence: "yellow",
+        open_questions: ["Clarification needed"],
+      },
+    });
+    expect(parsed.isTerminal).toBe(true);
+
+    const result = interpretPollResult(parsed, "scoping", DEFAULT_CONTEXT);
+    expect(result.action).toBe("scoped");
+    if (result.action === "scoped") {
+      expect(result.patch.confidence).toBe("yellow");
+    }
+  });
+
+  it("continue result includes messages from the session", () => {
+    const parsed = parseSessionResponse({
+      ...RAW_SCOPING_COMPLETE,
+      status_enum: "working",
+      structured_output: {
+        ...RAW_SCOPING_COMPLETE.structured_output,
+        confidence: "yellow",
+        open_questions: ["Which DB?"],
+      },
+      messages: [
+        { type: "devin_message", message: "I need clarification on the DB" },
+      ],
+    });
+
+    const result = interpretPollResult(parsed, "scoping", DEFAULT_CONTEXT);
+    expect(result.action).toBe("continue");
+    if (result.action === "continue") {
+      expect(result.patch!.messages).toHaveLength(1);
+      expect(result.patch!.messages![0].role).toBe("devin");
+    }
+  });
+});
+
+// ---------------------------------------------------------------------------
 // Wall-clock timeout through pipeline
 // ---------------------------------------------------------------------------
 
