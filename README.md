@@ -4,7 +4,7 @@ Devin already has confidence scoring and issue triage for Linear and Jira, but n
 
 **[Deployed App](https://devin-issue-pilot.vercel.app/)** · **[Video Walkthrough](#)** <!-- Replace # with Loom link -->
 
-> Opens in demo mode, a non-interactive preview of the full UI with sample data. To connect a real repo and trigger Devin sessions, switch to live mode with your own API keys (see [Getting Started](#getting-started)).
+> The deployed app offers two modes: **Preview** (non-interactive demo with sample data, no keys needed) and **Live** (connect a real repo with your own API keys). To run it locally, see [Getting Started](#getting-started)).
 
 ---
 
@@ -16,7 +16,7 @@ Devin already has confidence scoring and issue triage for Linear and Jira, but n
 - One-click fix: Devin takes the scoping plan and implements it, opening a PR
 
 **Beyond the brief:**
-- **Demo mode** is the default. 11 sample issues covering every UI state, no API keys needed.
+- **Preview mode** is the default. 11 sample issues covering every UI state, no API keys needed.
 - **BYOK API keys** let users bring their own Devin + GitHub keys via the Settings panel. Stored in `sessionStorage`, never persisted server-side.
 - **Clarification flow**: when confidence is yellow/red, Devin's questions get posted as a GitHub comment. Replies auto-trigger re-scoping.
 - **GitHub comment bridge** keeps Devin sessions and GitHub issue threads in sync, both directions.
@@ -24,6 +24,15 @@ Devin already has confidence scoring and issue triage for Linear and Jira, but n
 - **Blocker handling**: when Devin gets stuck, the dashboard shows what happened, a suggested fix, and lets you approve, instruct, or abort.
 - **ACU cost controls** with configurable per-session limits before any Devin session starts.
 - **Supabase persistence** so session state survives page reloads (optional).
+
+## How It Works
+
+1. **Connect a repo** — enter `owner/repo` on the connect screen
+2. **Issues load** — all open GitHub issues appear in the dashboard
+3. **Scope an issue** — click "Scope" and Devin analyzes it, returning a confidence score (green/yellow/red) and action plan
+4. **Review confidence** — green means Devin is confident it can fix it. Yellow/red means open questions remain
+5. **Clarify if needed** — for yellow/red, Devin's questions are posted as a GitHub comment. Reply there and re-scope
+6. **Fix** — once green, click "Fix" and Devin implements the plan and opens a PR
 
 ## Architecture
 
@@ -74,7 +83,7 @@ Demoed the working app with coworkers and let them use it hands-on. Collected fe
 | **Adaptive polling** | Devin's API doesn't support webhooks or SSE, so polling is the only option. Intervals are status-dependent: 10s for fixes, 20s for scoping, 30s for blocked. |
 | **`sessionStorage` for API keys** | Per-tab scope, wiped on close. Keys flow via custom headers (`x-devin-api-key`, `x-github-token`), never in URLs or server-side storage. |
 | **Server-side API proxies** | All external calls go through Next.js API routes. No `NEXT_PUBLIC_` env vars. The client never touches Devin or GitHub APIs directly. |
-| **Demo mode as default** | Zero setup for reviewers. Same components as live mode, just hardcoded data instead of API calls. |
+| **Preview mode as default** | Zero setup for reviewers. Same components as live mode, just hardcoded data instead of API calls. |
 | **Confidence-gated fixing** | Scoping and fixing are separate Devin sessions. Sessions don't share context, so the fix prompt must include the full issue body, scoping analysis, action plan, and file list. If anything is missing, Devin re-analyzes from scratch and wastes ACUs. Fixes only start after green confidence. Yellow/red triggers clarification first. |
 | **Native confidence over custom scoring** | I initially designed a deterministic 0-100 system (root cause found = +30pts, tests exist = +15pts, etc.). Then I found that Devin 2.1 already has native confidence scoring that Cognition validated against real success rates. Building my own layer would mean ignoring better data. Focused effort on the dashboard UX and GitHub integration instead. |
 | **GitHub API enrichment** | Devin only returns `files_to_modify` paths and `pull_request.url`. The dashboard calls GitHub's Contents API for file line counts and the Pull Request API for title, branch, and per-file diffs. No extra Devin ACUs. |
@@ -82,6 +91,8 @@ Demoed the working app with coworkers and let them use it hands-on. Collected fe
 | **Devin API V1** | V1 covers everything this project needs: create sessions, poll status, send messages, read structured output. V2 is for enterprise admins (org-wide analytics, audit logs). V3 adds RBAC with service user credentials, which is overkill here and still in beta. V1 keeps auth to a single Bearer token. V2/V3 would add actual ACU consumption reporting, which is the natural next step. |
 
 ## Getting Started
+
+The fastest way to try it is the **[deployed app](https://devin-issue-pilot.vercel.app/)** — fully functional, no setup needed. To run locally:
 
 **Prerequisites:** Node.js 18+
 
