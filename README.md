@@ -2,7 +2,7 @@
 
 Devin already has confidence scoring and issue triage for Linear and Jira, but not for GitHub Issues. This dashboard fills that gap: connect a repo, auto-scope every open issue using Devin's native confidence (green/yellow/red), and trigger one-click fixes that open PRs.
 
-**[Deployed App](https://devin-issue-pilot.vercel.app/)** · **[Video Walkthrough](#)** <!-- Replace # with Loom link -->
+**[Deployed App](https://devin-issue-pilot.vercel.app/)** · **[Video Walkthrough](https://www.loom.com/share/93bea29773aa4959b01879eb665516c0)**
 
 > The deployed app offers two modes: **Preview** (non-interactive demo with sample data, no keys needed) and **Live** (connect a real repo with your own API keys). To run it locally, see [Getting Started](#getting-started)).
 
