@@ -34,6 +34,8 @@ Devin already has confidence scoring and issue triage for Linear and Jira, but n
 5. **Clarify if needed** — for yellow/red, Devin's questions are posted as a GitHub comment. Reply there and re-scope
 6. **Fix** — once green, click "Fix" and Devin implements the plan and opens a PR
 
+![User Flow](./diagrams/devin-issue-pilot-flow_final.png)
+
 ## Architecture
 
 ![Architecture](./diagrams/architecture.png)
