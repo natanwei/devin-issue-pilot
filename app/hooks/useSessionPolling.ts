@@ -206,6 +206,24 @@ export function useSessionPolling(
                     files_changed: prData.files || [],
                   },
                 };
+
+                // Ensure PR description contains 'Closes #N' for auto-close
+                const closesPattern = /(?:closes|fixes|resolves)\s+#(\d+)/i;
+                const body: string | undefined = prData.body;
+                const hasCloseKeyword =
+                  typeof body === "string" &&
+                  closesPattern.test(body) &&
+                  body.match(new RegExp(`(?:closes|fixes|resolves)\\s+#${issueNumber}\\b`, "i"));
+                if (!hasCloseKeyword) {
+                  try {
+                    await fetch(
+                      `/api/github/pr-details?owner=${encodeURIComponent(current.repo.owner)}&repo=${encodeURIComponent(current.repo.name)}&pr=${result.patch.pr.number}&issueNumber=${issueNumber}`,
+                      { method: "PATCH", headers: apiKeyHeaders(keysRef.current) },
+                    );
+                  } catch {
+                    // Non-critical: PR description patch failed
+                  }
+                }
               }
             } catch {
               // PR enrichment failure is non-critical
