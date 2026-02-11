@@ -123,6 +123,7 @@ export async function getFileInfo(
 export interface PRDetailsRaw {
   number: number;
   title: string;
+  body: string | null;
   head: { ref: string };
   html_url: string;
   changed_files: number;
@@ -153,6 +154,7 @@ export async function getPRDetails(
     pr: {
       number: pr.number,
       title: pr.title,
+      body: pr.body ?? null,
       head: { ref: pr.head.ref },
       html_url: pr.html_url,
       changed_files: pr.changed_files,
@@ -240,6 +242,51 @@ export async function createCommentReaction(
     comment_id: commentId,
     content: "eyes",
   });
+}
+
+export function prBodyContainsCloseKeyword(
+  body: string | null,
+  issueNumber: number,
+): boolean {
+  if (!body) return false;
+  const regex = new RegExp(
+    `(?:closes|fixes|resolves)\\s+#${issueNumber}\\b`,
+    "i",
+  );
+  return regex.test(body);
+}
+
+export async function ensurePRClosesIssue(
+  owner: string,
+  repo: string,
+  prNumber: number,
+  issueNumber: number,
+  githubToken?: string,
+): Promise<{ updated: boolean; body: string }> {
+  const octokit = getOctokit(githubToken);
+  const { data: pr } = await octokit.pulls.get({
+    owner,
+    repo,
+    pull_number: prNumber,
+  });
+
+  const currentBody = pr.body ?? "";
+  if (prBodyContainsCloseKeyword(currentBody, issueNumber)) {
+    return { updated: false, body: currentBody };
+  }
+
+  const newBody = currentBody.trim()
+    ? `${currentBody.trimEnd()}\n\nCloses #${issueNumber}`
+    : `Closes #${issueNumber}`;
+
+  await octokit.pulls.update({
+    owner,
+    repo,
+    pull_number: prNumber,
+    body: newBody,
+  });
+
+  return { updated: true, body: newBody };
 }
 
 export function parsePatch(patch: string): DiffLine[] {

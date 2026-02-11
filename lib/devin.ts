@@ -142,8 +142,14 @@ ${(params.scopingResult.risks ?? []).length > 0 ? params.scopingResult.risks!.ma
 3. Write the tests described in "Tests Needed" and ensure they pass
 4. Be mindful of the known risks listed above
 5. Commit with clear, descriptive commit messages
-6. Create a PR with a clear title and description summarizing the changes. Include "Closes #${params.issueNumber}" in the PR description so the issue auto-closes when merged
-7. If you encounter a blocker or need clarification, ask — don't guess`;
+6. Create a PR with a clear title and description summarizing the changes
+7. If you encounter a blocker or need clarification, ask — don't guess
+
+**CRITICAL — PR Description Requirement**:
+Your PR description MUST contain the exact text "Closes #${params.issueNumber}" on its own line so the issue auto-closes when the PR is merged. This is a hard requirement — do not omit it. Example:
+\`\`\`
+Closes #${params.issueNumber}
+\`\`\``;
 
   if (params.previousContext) {
     prompt += `\n\n**Previous Session Context**:\n${params.previousContext}`;
