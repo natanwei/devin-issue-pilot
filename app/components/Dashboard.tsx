@@ -494,7 +494,7 @@ export default function Dashboard({
     dispatch({
       type: "UPDATE_ISSUE",
       issueNumber: issue.number,
-      patch: { status: "scoping" },
+      patch: { status: "scoping", scoping: null, confidence: null, scoped_at: null },
     });
 
     try {
@@ -679,14 +679,24 @@ export default function Dashboard({
           sessionType: "fixing",
         });
       } catch (err) {
+        const failMsg = err instanceof Error ? err.message : "Failed to start fix";
         dispatch({
           type: "UPDATE_ISSUE",
           issueNumber: issue.number,
-          patch: { status: "failed" },
+          patch: {
+            status: "failed",
+            fix_progress: {
+              status: "blocked",
+              current_step: "",
+              completed_steps: [],
+              pr_url: null,
+              blockers: [failMsg],
+            },
+          },
         });
         dispatch({
           type: "SET_ERROR",
-          error: err instanceof Error ? err.message : "Failed to start fix",
+          error: failMsg,
         });
       }
     },
@@ -991,6 +1001,15 @@ Do NOT start implementing the fix — only provide the updated analysis.`;
           type: "UPDATE_ISSUE",
           issueNumber,
           patch: { status: "fixing", blocker: null },
+        });
+
+        const approvedIssue = stateRef.current.issues.find((i) => i.number === issueNumber);
+        dispatch({
+          type: "SET_SESSION",
+          sessionId,
+          sessionUrl: approvedIssue?.fix_session?.session_url || "",
+          issueNumber,
+          sessionType: "fixing",
         });
       } catch (err) {
         dispatch({

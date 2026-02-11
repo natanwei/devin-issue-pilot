@@ -144,12 +144,16 @@ export function ConfidenceHeader({ issue }: { issue: DashboardIssue }) {
     const inProgress = issue.steps.findIndex(
       (s) => s.status === "in_progress"
     );
-    reasonText = `Fixing in progress (Step ${inProgress + 1} of ${issue.steps.length})`;
+    reasonText = inProgress >= 0
+      ? `Fixing in progress (Step ${inProgress + 1} of ${issue.steps.length})`
+      : "Fixing in progress";
     reasonColor = "text-accent-blue";
   } else if (issue.status === "blocked") {
     if (issue.steps.length > 0) {
       const blocked = issue.steps.findIndex((s) => s.status === "blocked");
-      reasonText = `Blocked at Step ${blocked + 1} of ${issue.steps.length}`;
+      reasonText = blocked >= 0
+        ? `Blocked at Step ${blocked + 1} of ${issue.steps.length}`
+        : "Devin needs input";
     } else {
       reasonText = "Devin needs input";
     }

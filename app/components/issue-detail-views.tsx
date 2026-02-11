@@ -403,11 +403,7 @@ export function DoneView({ issue, acuLimitFixing }: { issue: DashboardIssue; acu
           <ExternalLink className="h-3 w-3" />
           Comment posted on GitHub issue #{issue.number} →
         </a>
-      ) : (
-        <span className="text-text-muted text-xs">
-          Comment posted on GitHub issue #{issue.number} →
-        </span>
-      )}
+      ) : null}
     </>
   );
 }
@@ -458,7 +454,7 @@ export function FailedView({
 
   const failReason =
     issue.fix_progress?.blockers?.[0] ||
-    "Tests failed after modifying the error handler.";
+    "The fix session failed to complete.";
 
   return (
     <>

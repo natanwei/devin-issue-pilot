@@ -86,7 +86,7 @@ export function useGitHubCommentBridge(
           }
 
           try {
-            await fetch("/api/devin/message", {
+            const fwdRes = await fetch("/api/devin/message", {
               method: "POST",
               headers: {
                 "Content-Type": "application/json",
@@ -97,7 +97,7 @@ export function useGitHubCommentBridge(
                 message: `The user has provided the following clarification to your open questions (via GitHub comment from @${c.user?.login || "unknown"}):\n"${c.body}"\n\nPlease re-analyze the issue with this new information and output an UPDATED JSON analysis wrapped in \`\`\`json fences (same schema). Update your confidence level accordingly.\nDo NOT start implementing the fix — only provide the updated analysis.`,
               }),
             });
-            // Acknowledge receipt with eyes reaction
+            if (!fwdRes.ok) continue;
             fetch("/api/github/reactions", {
               method: "POST",
               headers: {

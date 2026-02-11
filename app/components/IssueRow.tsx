@@ -18,7 +18,9 @@ interface IssueRowProps {
 export default function IssueRow({ issue, isExpanded, onToggle, lastMainCommitDate, activeSession }: IssueRowProps) {
   const effectiveStatus: IssueStatus =
     activeSession?.issueNumber === issue.number
-      ? (activeSession.type === "scoping" ? "scoping" : "fixing")
+      ? activeSession.type === "scoping"
+        ? issue.scoping ? issue.status : "scoping"
+        : issue.status === "blocked" ? "blocked" : "fixing"
       : issue.status;
 
   const fileCount = issue.files_info.length || issue.scoping?.files_to_modify.length || 0;

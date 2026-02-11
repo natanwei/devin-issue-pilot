@@ -44,7 +44,9 @@ export default function IssueDetail({
 }: IssueDetailProps) {
   const effectiveStatus: IssueStatus =
     activeSession?.issueNumber === issue.number
-      ? (activeSession.type === "scoping" ? "scoping" : "fixing")
+      ? activeSession.type === "scoping"
+        ? issue.scoping ? issue.status : "scoping"
+        : issue.status === "blocked" ? "blocked" : "fixing"
       : issue.status;
 
   const borderColor = (() => {
