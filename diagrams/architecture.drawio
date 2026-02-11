@@ -1,0 +1,74 @@
+<mxfile host="app.diagrams.net" agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36" version="29.3.8">
+  <diagram id="CgLn2hAq-EULlXatcXNV" name="Architecture">
+    <mxGraphModel dx="2255" dy="1174" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="0" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="-JKknu9-u_WqRCYjXVPT-1" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fef9c3;strokeColor=#ca8a04;verticalAlign=top;fontSize=13;fontColor=#854d0e;strokeWidth=2;spacingTop=5;" value="&lt;b&gt;CLIENT · BROWSER&lt;/b&gt;" vertex="1">
+          <mxGeometry height="200" width="900" x="-602" y="-309" as="geometry" />
+        </mxCell>
+        <mxCell id="-JKknu9-u_WqRCYjXVPT-2" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6b7280;fontSize=11;verticalAlign=middle;" value="&lt;b&gt;Next.js 14 Frontend&lt;/b&gt;&lt;br&gt;React 18 · TypeScript&lt;br&gt;Tailwind CSS 3.4&lt;br&gt;shadcn/ui · Radix UI&lt;br&gt;Lucide icons" vertex="1">
+          <mxGeometry height="140" width="260" x="-582" y="-269" as="geometry" />
+        </mxCell>
+        <mxCell id="-JKknu9-u_WqRCYjXVPT-3" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6b7280;fontSize=11;verticalAlign=middle;" value="&lt;b&gt;Settings Panel&lt;/b&gt;&lt;br&gt;BYOK API keys&lt;br&gt;sessionStorage&lt;br&gt;&lt;i&gt;(ephemeral — tab close&lt;br&gt;= keys gone)&lt;/i&gt;" vertex="1">
+          <mxGeometry height="140" width="260" x="-282" y="-269" as="geometry" />
+        </mxCell>
+        <mxCell id="-JKknu9-u_WqRCYjXVPT-4" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6b7280;fontSize=11;verticalAlign=middle;dashed=1;" value="&lt;b&gt;Demo Mode&lt;/b&gt;&lt;br&gt;11 sample issues&lt;br&gt;No API keys needed&lt;br&gt;&lt;i&gt;(offline fallback)&lt;/i&gt;" vertex="1">
+          <mxGeometry height="140" width="260" x="18" y="-269" as="geometry" />
+        </mxCell>
+        <mxCell id="-JKknu9-u_WqRCYjXVPT-8" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e0f2fe;strokeColor=#0284c7;verticalAlign=top;fontSize=13;fontColor=#0c4a6e;strokeWidth=2;spacingTop=5;" value="&lt;b&gt;&amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp;NEXT.JS API ROUTES&lt;/b&gt;&lt;br&gt;&lt;i&gt;&amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp;Server-side only (no NEXT_PUBLIC_ vars)&lt;/i&gt;" vertex="1">
+          <mxGeometry height="220" width="900" x="-602" y="1" as="geometry" />
+        </mxCell>
+        <mxCell id="-JKknu9-u_WqRCYjXVPT-9" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6b7280;fontSize=11;verticalAlign=middle;" value="&lt;b&gt;Devin Routes&lt;/b&gt;&lt;br&gt;/scope · /fix&lt;br&gt;/status · /validate&lt;br&gt;/message&lt;br&gt;/terminate" vertex="1">
+          <mxGeometry height="140" width="260" x="-582" y="61" as="geometry" />
+        </mxCell>
+        <mxCell id="-JKknu9-u_WqRCYjXVPT-10" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6b7280;fontSize=11;verticalAlign=middle;" value="&lt;b&gt;GitHub Routes&lt;/b&gt;&lt;br&gt;/issues · /issue&lt;br&gt;/comments · /reactions&lt;br&gt;/pr-details · /file-info&lt;br&gt;/latest-commit" vertex="1">
+          <mxGeometry height="140" width="260" x="-282" y="61" as="geometry" />
+        </mxCell>
+        <mxCell id="-JKknu9-u_WqRCYjXVPT-11" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6b7280;fontSize=11;verticalAlign=middle;" value="&lt;b&gt;Supabase Routes&lt;/b&gt;&lt;br&gt;/sessions&lt;br&gt;&lt;i&gt;(GET + PATCH)&lt;/i&gt;" vertex="1">
+          <mxGeometry height="140" width="260" x="18" y="61" as="geometry" />
+        </mxCell>
+        <mxCell id="-JKknu9-u_WqRCYjXVPT-15" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f3e8ff;strokeColor=#7c3aed;verticalAlign=top;fontSize=13;fontColor=#581c87;strokeWidth=2;spacingTop=5;" value="&lt;b&gt;&amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp; &amp;nbsp;EXTERNAL SERVICES&lt;/b&gt;" vertex="1">
+          <mxGeometry height="200" width="900" x="-602" y="341" as="geometry" />
+        </mxCell>
+        <mxCell id="-JKknu9-u_WqRCYjXVPT-16" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6b7280;fontSize=11;verticalAlign=middle;" value="&lt;b&gt;Devin API&lt;/b&gt;&lt;br&gt;api.devin.ai/v1&lt;br&gt;AI-powered scoping&lt;br&gt;&amp;amp; fixing sessions&lt;br&gt;&lt;i&gt;(ACU-metered)&lt;/i&gt;" vertex="1">
+          <mxGeometry height="130" width="260" x="-582" y="391" as="geometry" />
+        </mxCell>
+        <mxCell id="-JKknu9-u_WqRCYjXVPT-17" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6b7280;fontSize=11;verticalAlign=middle;" value="&lt;b&gt;GitHub API&lt;/b&gt;&lt;br&gt;Octokit v22&lt;br&gt;Issues · PRs · Comments&lt;br&gt;Reactions · File info" vertex="1">
+          <mxGeometry height="130" width="260" x="-282" y="391" as="geometry" />
+        </mxCell>
+        <mxCell id="-JKknu9-u_WqRCYjXVPT-18" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#6b7280;fontSize=11;verticalAlign=middle;" value="&lt;b&gt;Supabase&lt;/b&gt;&lt;br&gt;PostgreSQL&lt;br&gt;Session persistence" vertex="1">
+          <mxGeometry height="130" width="260" x="18" y="391" as="geometry" />
+        </mxCell>
+        <mxCell id="-JKknu9-u_WqRCYjXVPT-12" edge="1" parent="1" source="-JKknu9-u_WqRCYjXVPT-9" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeWidth=2;strokeColor=#7c3aed;fontSize=10;labelBackgroundColor=#ffffff;startArrow=classic;startFill=1;endArrow=classic;endFill=1;" target="-JKknu9-u_WqRCYjXVPT-16" value="Bearer token">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="-JKknu9-u_WqRCYjXVPT-13" edge="1" parent="1" source="-JKknu9-u_WqRCYjXVPT-10" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeWidth=2;strokeColor=#7c3aed;fontSize=10;labelBackgroundColor=#ffffff;startArrow=classic;startFill=1;endArrow=classic;endFill=1;" target="-JKknu9-u_WqRCYjXVPT-17" value="PAT auth">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="-JKknu9-u_WqRCYjXVPT-14" edge="1" parent="1" source="-JKknu9-u_WqRCYjXVPT-11" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeWidth=2;strokeColor=#7c3aed;fontSize=10;labelBackgroundColor=#ffffff;startArrow=classic;startFill=1;endArrow=classic;endFill=1;" target="-JKknu9-u_WqRCYjXVPT-18" value="Service role key">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="-JKknu9-u_WqRCYjXVPT-7" edge="1" parent="1" source="-JKknu9-u_WqRCYjXVPT-2" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeWidth=2;strokeColor=#2563eb;fontSize=10;labelBackgroundColor=#ffffff;endArrow=classic;endFill=1;startArrow=classic;startFill=1;" target="-JKknu9-u_WqRCYjXVPT-11" value="hydrate / persist">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="-452" y="-97" />
+              <mxPoint x="148" y="-97" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="-JKknu9-u_WqRCYjXVPT-6" edge="1" parent="1" source="-JKknu9-u_WqRCYjXVPT-2" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeWidth=2;strokeColor=#2563eb;fontSize=10;labelBackgroundColor=#ffffff;endArrow=classic;endFill=1;startArrow=classic;startFill=1;" target="-JKknu9-u_WqRCYjXVPT-10" value="x-github-token&lt;br&gt;&lt;i&gt;BYOK → env fallback&lt;/i&gt;">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="-452" y="-65" />
+              <mxPoint x="-152" y="-65" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="-JKknu9-u_WqRCYjXVPT-5" edge="1" parent="1" source="-JKknu9-u_WqRCYjXVPT-2" style="edgeStyle=orthogonalEdgeStyle;html=1;strokeWidth=2;strokeColor=#2563eb;fontSize=10;labelBackgroundColor=#ffffff;endArrow=classic;endFill=1;startArrow=classic;startFill=1;" target="-JKknu9-u_WqRCYjXVPT-9" value="x-devin-api-key&lt;br&gt;&lt;i&gt;BYOK → env fallback&lt;/i&gt;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
